@@ -22,6 +22,9 @@ public class Server
     [Column("opened_time")]
     public DateTime OpenedTime { get; set; }
     
+    [Column("min_guild_id")]
+    public long? MinGuildId { get; set; }
+    
     public virtual ICollection<Family> Families { get; set; } = new List<Family>();
     
     public static void OnModelCreating(ModelBuilder modelBuilder)
