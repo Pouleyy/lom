@@ -15,7 +15,7 @@ namespace Jobs.Jobs;
 #else
 [Queue(WorkerConstants.Queues.ServerParsing)]
 #endif
-public class ServerParseJob(LomDbContext lomDbContext, IJoyNetClient joyNetClient, ILogger<ServerParseJob> logger)
+public class ServerScrapperJob(LomDbContext lomDbContext, IJoyNetClient joyNetClient, ILogger<ServerScrapperJob> logger)
 {
     [JobDisplayName("Server Parse Job")]
     public async Task ExecuteAsync(PerformContext context, CancellationToken cancellationToken = default)
