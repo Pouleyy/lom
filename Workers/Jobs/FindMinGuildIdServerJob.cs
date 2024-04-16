@@ -47,7 +47,6 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Starting find min guild id job for server {ServerId}", serverId);
         var server = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == serverId, cancellationToken: cancellationToken);
         if (server is null)
         {
@@ -68,6 +67,11 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
             logger.LogInformation("Server {ServerId} already has min guild id", server.ServerId);
             return;
         }
+        if(previousServer is null && server.MinGuildId is null)
+        {
+            logger.LogError("Server {ServerId} has no min guild id", server.ServerId);
+            return;
+        }
         _minGuildId = previousServer is null ? server.MinGuildId!.Value : ExtrapolateBeginGuildId(previousServer.MinGuildId!.Value);
         var maxGuildId = _minGuildId + 20000;
         while (!_guildFound && _minGuildId < maxGuildId)
@@ -78,6 +82,8 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
         }
         server.MinGuildId = _minGuildId - 50;
         await lomDbContext.SaveChangesAsync(cancellationToken);
+        _minGuildId = 0;
+        _guildFound = false;
         logger.LogInformation("Finished scrapping guild id for server {ServerId}", server.ServerId);
     }
 
