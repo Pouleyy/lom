@@ -19,7 +19,7 @@ public class MemberList
     [JsonPropertyName("is_online")]
     public int IsOnline { get; set; }
     [JsonPropertyName("offline_time")]
-    public int OfflineTime { get; set; }
+    public int LastLog { get; set; }
     [JsonPropertyName("role_head")]
     public RoleHead RoleHead { get; set; } = new RoleHead();
     [JsonPropertyName("role_id")]
