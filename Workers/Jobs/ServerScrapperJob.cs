@@ -2,6 +2,7 @@ using Core.Services.Interface;
 using Entities.Context;
 using Entities.Models;
 using Hangfire;
+using Hangfire.Console;
 using Hangfire.Server;
 using Lom.Hangfire;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,8 @@ public class ServerScrapperJob(LomDbContext lomDbContext, IJoyNetClient joyNetCl
         logger.LogInformation("Got {TotalServersCount} total servers", euServers.Count + estServers.Count);
         //Merge two lists but keep trace of the region
         var servers = euServers.Concat(estServers).Distinct().ToList();
-        foreach (var server in servers)
+        var progress = context.WriteProgressBar();
+        foreach (var server in servers.WithProgress(progress))
         {
             if (dbServers.ContainsKey(server.ServerId)) continue;
             var dbServer = new Server
