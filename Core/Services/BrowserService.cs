@@ -18,7 +18,6 @@ public class BrowserService
 
     private void ConsoleMessageReceived(object? sender, ConsoleEventArgs e)
     {
-        Console.WriteLine($"Console message: {e.Message.Text}");
         ConsoleMessageEvent?.Invoke(this, new ConsoleMessageEvent
         {
             Message = e.Message.Text,
