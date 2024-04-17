@@ -21,14 +21,14 @@ namespace Jobs.Jobs;
 public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<FindMinGuildIdServerJob> logger)
 {
     private bool _guildFound;
-    private long _minGuildId;
+    private ulong _minGuildId;
 
     [JobDisplayName("FindMinGuildIdServerJob : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
-    public async Task ExecuteAsync(PerformContext context, ServerShortName subRegion, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting find min guild id job for {SubRegion}", subRegion);
-        var subRegionServers = await lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.ShortName == subRegion).ToListAsync(cancellationToken: cancellationToken);
+        var subRegionServers = await lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.SubRegion == subRegion).ToListAsync(cancellationToken: cancellationToken);
         if (subRegionServers.Count == 0)
         {
             logger.LogError("No servers with subregion {SubRegion} found", subRegion);
@@ -95,7 +95,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
         browserService.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 
-    private static long ExtrapolateBeginGuildId(long previousServerMinGuildId)
+    private static ulong ExtrapolateBeginGuildId(ulong previousServerMinGuildId)
     {
         var guildId = previousServerMinGuildId + 134210000;
         return guildId - guildId % 10000;
@@ -103,9 +103,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
     
     private async Task ConsoleMessageReceived(object? sender, ConsoleMessageEvent e)
     {
-        var message = e.Message.Split(' ');
-        if (message.Length < 3) return;
-        switch (message[2])
+        switch (e.Message)
         {
             case "guild.guild_members_info_s2c":
                 var jsonValue = await e.Response!.JsonValueAsync();

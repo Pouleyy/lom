@@ -1,6 +1,6 @@
 namespace Entities.Models;
 
-public enum ServerShortName
+public enum SubRegion
 {
     AMEN,
     ES,

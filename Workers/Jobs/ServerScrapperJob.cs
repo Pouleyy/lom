@@ -39,7 +39,7 @@ public class ServerScrapperJob(LomDbContext lomDbContext, IJoyNetClient joyNetCl
                 ServerName = server.Name,
                 Region = Enum.Parse<Region>(server.Region),
                 OpenedTime = server.OpenedTime,
-                ShortName = Enum.Parse<ServerShortName>(server.Name.Split('-')[0])
+                SubRegion = Enum.Parse<SubRegion>(server.Name.Split('-')[0])
             };
             await lomDbContext.Servers.AddAsync(dbServer, cancellationToken);
         }

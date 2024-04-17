@@ -3,5 +3,5 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Entities.Helper;
 
-public class ServerShortNameConverter() : ValueConverter<ServerShortName, string>(e => e.ToString(),
-    s => Enum.Parse<ServerShortName>(s));
+public class ServerShortNameConverter() : ValueConverter<SubRegion, string>(e => e.ToString(),
+    s => Enum.Parse<SubRegion>(s));

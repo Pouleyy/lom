@@ -6,7 +6,7 @@ namespace Entities.Models;
 [Table("families")]
 public class Family
 {
-    [Column("guild_id")]
+    [Column("guild_id", TypeName = "bigint")]
     public ulong GuildId { get; set; }
     
     [Column("guild_name")]
@@ -21,7 +21,7 @@ public class Family
     [Column("level")]
     public int Level { get; set; }
     
-    [Column("leader_id")]
+    [Column("leader_id", TypeName = "bigint")]
     public ulong LeaderId { get; set; }
     
     [Column("server_id")]
@@ -42,9 +42,12 @@ public class Family
                     .ValueGeneratedNever();
         
         modelBuilder.Entity<Family>()
-            .HasOne(f => f.Server)
-            .WithMany(s => s.Families)
-            .HasForeignKey(f => f.ServerId)
-            .OnDelete(DeleteBehavior.Cascade);
+                    .HasOne(f => f.Server)
+                    .WithMany(s => s.Families)
+                    .HasForeignKey(f => f.ServerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Family>()
+                    .HasIndex(f => f.GuildName);
     }
 }

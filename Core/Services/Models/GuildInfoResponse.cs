@@ -21,5 +21,5 @@ public class GuildInfo
     [JsonPropertyName("level")]
     public int Level { get; set; }
     [JsonPropertyName("create_time")]
-    public ulong CreateTime { get; set; }
+    public long CreateTime { get; set; }
 }

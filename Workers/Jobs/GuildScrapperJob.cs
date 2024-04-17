@@ -27,10 +27,10 @@ public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserS
     
     [JobDisplayName("GuildInfoScrapperJob : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
-    public async Task ExecuteAsync(PerformContext context, ServerShortName subRegion, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting guild scrapper job for {SubRegion}", subRegion);
-        var subRegionServers = await lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.ShortName == subRegion).ToListAsync(cancellationToken: cancellationToken);
+        var subRegionServers = await lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.SubRegion == subRegion).ToListAsync(cancellationToken: cancellationToken);
         if (subRegionServers.Count == 0)
         {
             logger.LogError("No servers with subregion {SubRegion} found", subRegion);
@@ -92,9 +92,7 @@ public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserS
 
     private async Task ConsoleMessageReceived(object? sender, ConsoleMessageEvent e)
     {
-        var message = e.Message.Split(' ');
-        if (message.Length < 3) return;
-        switch (message[2])
+        switch (e.Message)
         {
             case "guild.guild_info_s2c":
                 var jsonValue = await e.Response!.JsonValueAsync();
@@ -110,7 +108,7 @@ public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserS
                         GuildName = guildInfo.GuildName,
                         Level = guildInfo.Level,
                         Notice = guildInfo.Notice,
-                        CreatedTime = DateTimeOffset.FromUnixTimeSeconds((long)guildInfo.CreateTime).UtcDateTime,
+                        CreatedTime = DateTimeOffset.FromUnixTimeSeconds(guildInfo.CreateTime).UtcDateTime,
                         LeaderId = guildInfo.LeaderId,
                         ServerId = _currentServerId
                     };

@@ -3,6 +3,7 @@ using System;
 using Entities.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Entities.Migrations
 {
     [DbContext(typeof(LomDbContext))]
-    partial class LomDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240416221723_Add_Player_Uid_LastUpdate_Change_GuildId_Ulong")]
+    partial class Add_Player_Uid_LastUpdate_Change_GuildId_Ulong
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -24,8 +27,8 @@ namespace Entities.Migrations
 
             modelBuilder.Entity("Entities.Models.Family", b =>
                 {
-                    b.Property<long>("GuildId")
-                        .HasColumnType("bigint")
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("numeric(20,0)")
                         .HasColumnName("guild_id");
 
                     b.Property<DateTime>("CreatedTime")
@@ -37,8 +40,8 @@ namespace Entities.Migrations
                         .HasColumnType("text")
                         .HasColumnName("guild_name");
 
-                    b.Property<long>("LeaderId")
-                        .HasColumnType("bigint")
+                    b.Property<decimal>("LeaderId")
+                        .HasColumnType("numeric(20,0)")
                         .HasColumnName("leader_id");
 
                     b.Property<int>("Level")
@@ -57,8 +60,6 @@ namespace Entities.Migrations
                     b.HasKey("GuildId")
                         .HasName("families_pkey");
 
-                    b.HasIndex("GuildName");
-
                     b.HasIndex("ServerId");
 
                     b.ToTable("families");
@@ -66,28 +67,28 @@ namespace Entities.Migrations
 
             modelBuilder.Entity("Entities.Models.Player", b =>
                 {
-                    b.Property<long>("PlayerId")
-                        .HasColumnType("bigint")
+                    b.Property<decimal>("PlayerId")
+                        .HasColumnType("numeric(20,0)")
                         .HasColumnName("player_id");
 
-                    b.Property<long>("Attack")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Attack")
+                        .HasColumnType("integer")
                         .HasColumnName("attack");
 
-                    b.Property<long>("Defense")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Defense")
+                        .HasColumnType("integer")
                         .HasColumnName("defense");
 
                     b.Property<int>("DonationWeekly")
                         .HasColumnType("integer")
                         .HasColumnName("donation_weekly");
 
-                    b.Property<long>("GuildId")
-                        .HasColumnType("bigint")
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("numeric(20,0)")
                         .HasColumnName("guild_id");
 
-                    b.Property<long>("Health")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Health")
+                        .HasColumnType("integer")
                         .HasColumnName("health");
 
                     b.Property<DateTime>("LastLogin")
@@ -103,8 +104,8 @@ namespace Entities.Migrations
                         .HasColumnType("text")
                         .HasColumnName("player_name");
 
-                    b.Property<long>("Power")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Power")
+                        .HasColumnType("integer")
                         .HasColumnName("power");
 
                     b.Property<string>("ProfilePictureUrl")
@@ -126,10 +127,6 @@ namespace Entities.Migrations
 
                     b.HasIndex("GuildId");
 
-                    b.HasIndex("Power");
-
-                    b.HasIndex("Uid");
-
                     b.ToTable("players");
                 });
 
@@ -139,8 +136,8 @@ namespace Entities.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("server_id");
 
-                    b.Property<long?>("MinGuildId")
-                        .HasColumnType("bigint")
+                    b.Property<decimal?>("MinGuildId")
+                        .HasColumnType("numeric(20,0)")
                         .HasColumnName("min_guild_id");
 
                     b.Property<DateTime>("OpenedTime")
@@ -156,17 +153,13 @@ namespace Entities.Migrations
                         .HasColumnType("text")
                         .HasColumnName("server_name");
 
-                    b.Property<string>("SubRegion")
+                    b.Property<string>("ShortName")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("short_name");
 
                     b.HasKey("ServerId")
                         .HasName("servers_pkey");
-
-                    b.HasIndex("ServerName");
-
-                    b.HasIndex("SubRegion");
 
                     b.ToTable("servers");
                 });

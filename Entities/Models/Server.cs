@@ -17,13 +17,13 @@ public class Server
     public Region Region { get; set; }
     
     [Column("short_name")]
-    public ServerShortName ShortName { get; set; }
+    public SubRegion SubRegion { get; set; }
     
     [Column("opened_time")]
     public DateTime OpenedTime { get; set; }
     
-    [Column("min_guild_id")]
-    public long? MinGuildId { get; set; }
+    [Column("min_guild_id", TypeName = "bigint")]
+    public ulong? MinGuildId { get; set; }
     
     public virtual ICollection<Family> Families { get; set; } = new List<Family>();
     
@@ -42,7 +42,13 @@ public class Server
                     .HasConversion<int>();
 
         modelBuilder.Entity<Server>()
-                    .Property(s => s.ShortName)
+                    .Property(s => s.SubRegion)
                     .HasConversion(new ServerShortNameConverter());
+
+        modelBuilder.Entity<Server>()
+                    .HasIndex(s => s.ServerName);
+        
+        modelBuilder.Entity<Server>()
+                    .HasIndex(s => s.SubRegion);
     }
 }

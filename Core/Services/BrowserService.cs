@@ -18,9 +18,11 @@ public class BrowserService
 
     private void ConsoleMessageReceived(object? sender, ConsoleEventArgs e)
     {
+        var message = e.Message.Text.Split(' ');
+        if(message.Length < 3) return;
         ConsoleMessageEvent?.Invoke(this, new ConsoleMessageEvent
         {
-            Message = e.Message.Text,
+            Message = message[2],
             Response = e.Message.Args?.Last()
         });
     }
