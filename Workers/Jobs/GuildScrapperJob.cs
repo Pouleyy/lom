@@ -1,11 +1,10 @@
+using Core.Hangfire.Interfaces;
 using Core.Services;
 using Core.Services.Models;
 using Entities.Context;
 using Entities.Models;
-using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
-using Lom.Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -13,20 +12,13 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-#if DEBUG
-[Queue(WorkerConstants.Queues.Dev)]
-#else
-[Queue(WorkerConstants.Queues.Parsing)]
-#endif
-public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<GuildScrapperJob> logger)
+public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<GuildScrapperJob> logger) : IGuildScrapperJob
 {
     private int _numberOfVoidIds;
     private const int _limitVoidIds = 75;
     private int _currentServerId;
     private List<ulong> _currentGuildIds = [];
     
-    [JobDisplayName("GuildInfoScrapperJob : {1}")]
-    [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting guild scrapper job for {SubRegion}", subRegion);
@@ -45,8 +37,6 @@ public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserS
         logger.LogInformation("Finished scrapping guild id for {SubRegion}", subRegion);
     }
     
-    [JobDisplayName("GuildInfoScrapperJob : {1}")]
-    [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting guild scrapper job for server {ServerId}", serverId);
@@ -79,6 +69,7 @@ public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserS
             await Task.Delay(100, cancellationToken);
         }
         _numberOfVoidIds = 0;
+        server.MinGuildId = _currentGuildIds.Min();
         await lomDbContext.SaveChangesAsync(cancellationToken);
     }
 

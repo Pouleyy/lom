@@ -1,4 +1,4 @@
-namespace Lom.Hangfire;
+namespace Core.Hangfire;
 
 public class WorkerConstants
 {

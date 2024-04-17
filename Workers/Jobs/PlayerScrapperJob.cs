@@ -1,3 +1,5 @@
+using Core.Hangfire;
+using Core.Hangfire.Interfaces;
 using Core.Services;
 using Core.Services.Models;
 using Entities.Context;
@@ -5,7 +7,6 @@ using Entities.Models;
 using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
-using Lom.Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
@@ -14,17 +15,10 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-#if DEBUG
-[Queue(WorkerConstants.Queues.Dev)]
-#else
-[Queue(WorkerConstants.Queues.Parsing)]
-#endif
-public class PlayerScrapperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<PlayerScrapperJob> logger)
+public class PlayerScrapperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<PlayerScrapperJob> logger) : IPlayerScrapperJob
 {
     private ConcurrentDictionary<ulong, Player> _currentPlayers = [];
 
-    [JobDisplayName("PlayerScrapperJob : {1}")]
-    [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top10 = false, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting player scrapper job for {SubRegion}", subRegion);
@@ -43,8 +37,6 @@ public class PlayerScrapperJob(LomDbContext lomDbContext, BrowserService browser
         logger.LogInformation("Finished scrapping player id for {SubRegion}", subRegion);
     }
 
-    [JobDisplayName("PlayerScrapperJob : {1}")]
-    [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default)
     {
         var server = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == serverId, cancellationToken: cancellationToken);

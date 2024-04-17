@@ -1,24 +1,17 @@
+using Core.Hangfire.Interfaces;
 using Core.Services.Interface;
 using Entities.Context;
 using Entities.Models;
-using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
-using Lom.Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-#if DEBUG
-[Queue(WorkerConstants.Queues.Dev)]
-#else
-[Queue(WorkerConstants.Queues.ServerParsing)]
-#endif
-public class ServerScrapperJob(LomDbContext lomDbContext, IJoyNetClient joyNetClient, ILogger<ServerScrapperJob> logger)
+public class ServerScrapperJob(LomDbContext lomDbContext, IJoyNetClient joyNetClient, ILogger<ServerScrapperJob> logger) : IServerScrapperJob
 {
-    [JobDisplayName("Server Parse Job")]
     public async Task ExecuteAsync(PerformContext context, CancellationToken cancellationToken = default)
     {
         var dbServers = await lomDbContext.Servers.ToDictionaryAsync(x => x.ServerId, cancellationToken: cancellationToken);

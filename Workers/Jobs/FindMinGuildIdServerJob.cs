@@ -1,11 +1,10 @@
+using Core.Hangfire.Interfaces;
 using Core.Services;
 using Core.Services.Models;
 using Entities.Context;
 using Entities.Models;
-using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
-using Lom.Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -13,18 +12,11 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-#if DEBUG
-[Queue(WorkerConstants.Queues.Dev)]
-#else
-[Queue(WorkerConstants.Queues.Parsing)]
-#endif
-public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<FindMinGuildIdServerJob> logger)
+public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<FindMinGuildIdServerJob> logger) : IFindMinGuildIdServerJob
 {
     private bool _guildFound;
     private ulong _minGuildId;
 
-    [JobDisplayName("FindMinGuildIdServerJob : {1}")]
-    [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting find min guild id job for {SubRegion}", subRegion);
@@ -43,8 +35,6 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
         logger.LogInformation("Finished scrapping guild id for {SubRegion}", subRegion);
     }
 
-    [JobDisplayName("FindMinGuildIdServerJob : {1}")]
-    [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default)
     {
         var server = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == serverId, cancellationToken: cancellationToken);
