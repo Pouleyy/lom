@@ -7,9 +7,9 @@ namespace Core.Hangfire.Interfaces;
 #if DEBUG
 [Queue(WorkerConstants.Queues.Dev)]
 #else
-[Queue(WorkerConstants.Queues.Parsing)]
+[Queue(WorkerConstants.Queues.Scraping)]
 #endif
-public interface IPlayerScrapperJob
+public interface IPlayerScraperJob
 {
     [JobDisplayName("PlayerScrapperJob : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]

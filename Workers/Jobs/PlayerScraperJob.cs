@@ -15,7 +15,7 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-public class PlayerScrapperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<PlayerScrapperJob> logger) : IPlayerScrapperJob
+public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<PlayerScraperJob> logger) : IPlayerScraperJob
 {
     private ConcurrentDictionary<ulong, Player> _currentPlayers = [];
 

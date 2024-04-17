@@ -7,7 +7,7 @@ public class WorkerConstants
     public static class Queues
     {
         public const string Dev = "dev";
-        public const string Parsing = "parsing";
-        public const string ServerParsing = "server-parsing";
+        public const string Scraping = "scraping";
+        public const string ServerScraping = "server-scraping";
     }
 }

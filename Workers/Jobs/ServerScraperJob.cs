@@ -10,7 +10,7 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-public class ServerScrapperJob(LomDbContext lomDbContext, IJoyNetClient joyNetClient, ILogger<ServerScrapperJob> logger) : IServerScrapperJob
+public class ServerScraperJob(LomDbContext lomDbContext, IJoyNetClient joyNetClient, ILogger<ServerScraperJob> logger) : IServerScraperJob
 {
     public async Task ExecuteAsync(PerformContext context, CancellationToken cancellationToken = default)
     {

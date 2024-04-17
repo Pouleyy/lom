@@ -12,7 +12,7 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-public class GuildScrapperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<GuildScrapperJob> logger) : IGuildScrapperJob
+public class GuildScraperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<GuildScraperJob> logger) : IGuildScraperJob
 {
     private int _numberOfVoidIds;
     private const int _limitVoidIds = 75;

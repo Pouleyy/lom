@@ -41,14 +41,14 @@ public static partial class ServiceCollectionExtensions
 
     public static void ConfigureRecurringJob(this WebApplication app)
     {
-        RecurringJob.AddOrUpdate<IServerScrapperJob>("ServerScrapperJob", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(23));
+        RecurringJob.AddOrUpdate<IServerScraperJob>("ServerScrapperJob", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(23));
         var enumLength = Enum.GetValues<SubRegion>().Length;
         foreach (var (subregion, index) in Enum.GetValues<SubRegion>().Select((subRegion, index) => (subRegion, index)))
         {
             RecurringJob.AddOrUpdate<IFindMinGuildIdServerJob>($"FindMinGuildIdServerJob-{subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"20 {index} */3 * *");
-            RecurringJob.AddOrUpdate<IGuildScrapperJob>($"GuildScrapperJob-{subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"0 {index} */2 * *");
-            RecurringJob.AddOrUpdate<IPlayerScrapperJob>($"PlayerScrapperJob-{subregion}", job => job.ExecuteAsync(null, subregion, true, CancellationToken.None), $"40 {index} * * *");
-            RecurringJob.AddOrUpdate<IPlayerScrapperJob>($"PlayerScrapperJob-{subregion}-full", job => job.ExecuteAsync(null, subregion, false, CancellationToken.None), $"10 {index + enumLength} */3 * *");
+            RecurringJob.AddOrUpdate<IGuildScraperJob>($"GuildScrapperJob-{subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"0 {index} */2 * *");
+            RecurringJob.AddOrUpdate<IPlayerScraperJob>($"PlayerScrapperJob-{subregion}", job => job.ExecuteAsync(null, subregion, true, CancellationToken.None), $"40 {index} * * *");
+            RecurringJob.AddOrUpdate<IPlayerScraperJob>($"PlayerScrapperJob-{subregion}-full", job => job.ExecuteAsync(null, subregion, false, CancellationToken.None), $"10 {index + enumLength} */3 * *");
         }
     }
 }
