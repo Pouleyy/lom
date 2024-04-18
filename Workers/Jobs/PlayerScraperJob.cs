@@ -1,10 +1,9 @@
-using Core.Hangfire;
 using Core.Hangfire.Interfaces;
-using Core.Services;
+using Core.Helpers;
+using Core.Services.Interface;
 using Core.Services.Models;
 using Entities.Context;
 using Entities.Models;
-using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
@@ -15,9 +14,10 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<PlayerScraperJob> logger) : IPlayerScraperJob
+public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browserService, ILogger<PlayerScraperJob> logger) : IPlayerScraperJob
 {
     private ConcurrentDictionary<ulong, Player> _currentPlayers = [];
+    private BrowserLom _browser;
 
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top10 = false, CancellationToken cancellationToken = default)
     {
@@ -28,11 +28,18 @@ public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserS
             logger.LogError("No servers with subregion {SubRegion} found", subRegion);
             return;
         }
-        await PreparePuppeteer(cancellationToken);
-        var progress = context.WriteProgressBar();
-        foreach (var server in subRegionServers.WithProgress(progress))
+        try
         {
-            await ScrapPlayerInfo(server, top10, cancellationToken);
+            await PrepareBrowser(subRegion, cancellationToken);
+            var progress = context.WriteProgressBar();
+            foreach (var server in subRegionServers.WithProgress(progress))
+            {
+                await ScrapPlayerInfo(server, top10, cancellationToken);
+            }
+        }
+        finally
+        {
+           browserService.ReleaseBrowser(_browser); 
         }
         logger.LogInformation("Finished scrapping player id for {SubRegion}", subRegion);
     }
@@ -45,8 +52,15 @@ public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserS
             logger.LogError("Server with id {ServerId} not found", serverId);
             return;
         }
-        await PreparePuppeteer(cancellationToken);
-        await ScrapPlayerInfo(server, false, cancellationToken);
+        try
+        {
+            await PrepareBrowser(server.SubRegion, cancellationToken);
+            await ScrapPlayerInfo(server, false, cancellationToken);
+        }
+        finally
+        {
+            browserService.ReleaseBrowser(_browser);
+        }
     }
 
     private async Task ScrapPlayerInfo(Server server, bool top10, CancellationToken cancellationToken)
@@ -57,13 +71,13 @@ public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserS
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
         foreach (var guildId in guildIds)
         {
-            await browserService.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
         foreach (var (playerId, _) in _currentPlayers)
         {
-            await browserService.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
@@ -89,12 +103,16 @@ public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserS
     }
 
 
-    private async Task PreparePuppeteer(CancellationToken cancellationToken)
+    private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
     {
-        await Task.Delay(8000, cancellationToken);
-        await browserService.ChangePrintLevel();
-        //Hook to page console
-        browserService.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
+        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion));
+        if (browser is null)
+        {
+            logger.LogError("No browser found for {SubRegion}", subRegion);
+            return;
+        }
+        _browser = browser;
+        _browser.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 
     private async Task ConsoleMessageReceived(object? sender, ConsoleMessageEvent e)
@@ -128,6 +146,8 @@ public class PlayerScraperJob(LomDbContext lomDbContext, BrowserService browserS
                             Uid = ConvertPlayerIdToUid(member.PlayerId),
                             PlayerName = member.PlayerName,
                             GuildId = guildMemberInfos.GuildId,
+                            DonationWeekly = member.DonateWeek,
+                            ProfilePictureUrl = member.RoleHead.Url,
                             Role = Enum.Parse<Role>(member.Role.ToString()),
                             LastLogin = member.IsOnline == 1 ? DateTime.UtcNow : DateTimeOffset.FromUnixTimeSeconds(member.LastLogin).UtcDateTime,
                             LastUpdate = DateTime.UtcNow

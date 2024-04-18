@@ -1,5 +1,6 @@
 using Core.Hangfire.Interfaces;
-using Core.Services;
+using Core.Helpers;
+using Core.Services.Interface;
 using Core.Services.Models;
 using Entities.Context;
 using Entities.Models;
@@ -12,10 +13,11 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<FindMinGuildIdServerJob> logger) : IFindMinGuildIdServerJob
+public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService browserService, ILogger<FindMinGuildIdServerJob> logger) : IFindMinGuildIdServerJob
 {
     private bool _guildFound;
     private ulong _minGuildId;
+    private BrowserLom _browser;
 
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
@@ -26,11 +28,18 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
             logger.LogError("No servers with subregion {SubRegion} found", subRegion);
             return;
         }
-        await PreparePuppeteer(cancellationToken);
-        var progress = context.WriteProgressBar();
-        foreach (var server in subRegionServers.WithProgress(progress))
+        try
         {
-            await FindMinGuildIdServer(server, cancellationToken);
+            await PrepareBrowser(subRegion, cancellationToken);
+            var progress = context.WriteProgressBar();
+            foreach (var server in subRegionServers.WithProgress(progress))
+            {
+                await FindMinGuildIdServer(server, cancellationToken);
+            }
+        }
+        finally
+        {
+            browserService.ReleaseBrowser(_browser);
         }
         logger.LogInformation("Finished scrapping guild id for {SubRegion}", subRegion);
     }
@@ -43,8 +52,15 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
             logger.LogError("Server with id {ServerId} not found", serverId);
             return;
         }
-        await PreparePuppeteer(cancellationToken);
-        await FindMinGuildIdServer(server, cancellationToken);
+        try
+        {
+            await PrepareBrowser(server.SubRegion, cancellationToken);
+            await FindMinGuildIdServer(server, cancellationToken);
+        }
+        finally
+        {
+            browserService.ReleaseBrowser(_browser);
+        }
     }
 
 
@@ -57,16 +73,24 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
             logger.LogInformation("Server {ServerId} already has min guild id", server.ServerId);
             return;
         }
-        if(previousServer is null && server.MinGuildId is null)
+        if (previousServer is null)
         {
-            logger.LogError("Server {ServerId} has no min guild id", server.ServerId);
-            return;
+            if (server.MinGuildId is not null && server.MinGuildId % 10000 != 0000)
+            {
+                logger.LogError("First server {ServerId} for sub region {SubRegion} already process", server.ServerId, server.SubRegion);
+                return;
+            }
+            if (server.MinGuildId is null)
+            {
+                logger.LogInformation("Server {ServerId} for sub region {SubRegion} has no min guild id", server.ServerId, server.SubRegion);
+                return;
+            }
         }
         _minGuildId = previousServer is null ? server.MinGuildId!.Value : ExtrapolateBeginGuildId(previousServer.MinGuildId!.Value);
         var maxGuildId = _minGuildId + 20000;
         while (!_guildFound && _minGuildId < maxGuildId)
         {
-            await browserService.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {_minGuildId}, source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {_minGuildId}, source: undefined }}, false);");
             _minGuildId += 10;
             await Task.Delay(100, cancellationToken);
         }
@@ -77,12 +101,16 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
         logger.LogInformation("Finished scrapping guild id for server {ServerId}", server.ServerId);
     }
 
-    private async Task PreparePuppeteer(CancellationToken cancellationToken)
+    private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
     {
-        await Task.Delay(8000, cancellationToken);
-        await browserService.ChangePrintLevel();
-        //Hook to page console
-        browserService.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
+        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion));
+        if (browser is null)
+        {
+            logger.LogError("No browser found for {SubRegion}", subRegion);
+            return;
+        }
+        _browser = browser;
+        _browser.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 
     private static ulong ExtrapolateBeginGuildId(ulong previousServerMinGuildId)
@@ -90,7 +118,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
         var guildId = previousServerMinGuildId + 134210000;
         return guildId - guildId % 10000;
     }
-    
+
     private async Task ConsoleMessageReceived(object? sender, ConsoleMessageEvent e)
     {
         switch (e.Message)
@@ -101,8 +129,6 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, BrowserService b
                 var guildMemberInfos = JsonSerializer.Deserialize<GuildMembersInfoResponse>(stringValue!);
                 if (guildMemberInfos is not null && guildMemberInfos.MemberList.Count > 0)
                 {
-                    logger.LogInformation("Members count: {MembersCount}", guildMemberInfos!.MemberList.Count);
-                    logger.LogInformation("guild_id: {GuildId}", guildMemberInfos.GuildId);
                     _guildFound = true;
                     _minGuildId = guildMemberInfos.GuildId;
                 }

@@ -1,5 +1,6 @@
 using Core.Hangfire.Interfaces;
-using Core.Services;
+using Core.Helpers;
+using Core.Services.Interface;
 using Core.Services.Models;
 using Entities.Context;
 using Entities.Models;
@@ -12,12 +13,13 @@ using Server = Entities.Models.Server;
 
 namespace Jobs.Jobs;
 
-public class GuildScraperJob(LomDbContext lomDbContext, BrowserService browserService, ILogger<GuildScraperJob> logger) : IGuildScraperJob
+public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserService, ILogger<GuildScraperJob> logger) : IGuildScraperJob
 {
     private int _numberOfVoidIds;
     private const int _limitVoidIds = 75;
     private int _currentServerId;
     private List<ulong> _currentGuildIds = [];
+    private BrowserLom _browser;
     
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
@@ -28,11 +30,18 @@ public class GuildScraperJob(LomDbContext lomDbContext, BrowserService browserSe
             logger.LogError("No servers with subregion {SubRegion} found", subRegion);
             return;
         }
-        await PreparePuppeteer(cancellationToken);
-        var progress = context.WriteProgressBar();
-        foreach (var server in subRegionServers.WithProgress(progress))
+        try
         {
-            await ScrapGuildInfo(server, cancellationToken);
+            await PrepareBrowser(subRegion, cancellationToken);
+            var progress = context.WriteProgressBar();
+            foreach (var server in subRegionServers.WithProgress(progress))
+            {
+                await ScrapGuildInfo(server, cancellationToken);
+            }
+        }
+        finally
+        {
+            browserService.ReleaseBrowser(_browser);
         }
         logger.LogInformation("Finished scrapping guild id for {SubRegion}", subRegion);
     }
@@ -46,8 +55,15 @@ public class GuildScraperJob(LomDbContext lomDbContext, BrowserService browserSe
             logger.LogError("Server with id {ServerId} not found", serverId);
             return;
         }
-        await PreparePuppeteer(cancellationToken);
-        await ScrapGuildInfo(server, cancellationToken);
+        try
+        {
+            await PrepareBrowser(server.SubRegion, cancellationToken);
+            await ScrapGuildInfo(server, cancellationToken);
+        }
+        finally
+        {
+            browserService.ReleaseBrowser(_browser);
+        }
     }
 
     private async Task ScrapGuildInfo(Server server, CancellationToken cancellationToken)
@@ -63,7 +79,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, BrowserService browserSe
         var minGuildId = server.MinGuildId;
         while (_numberOfVoidIds < _limitVoidIds)
         {
-            await browserService.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
             minGuildId++;
             _numberOfVoidIds++;
             await Task.Delay(100, cancellationToken);
@@ -73,12 +89,16 @@ public class GuildScraperJob(LomDbContext lomDbContext, BrowserService browserSe
         await lomDbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task PreparePuppeteer(CancellationToken cancellationToken)
+    private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
     {
-        await Task.Delay(8000, cancellationToken);
-        await browserService.ChangePrintLevel();
-        //Hook to page console
-        browserService.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
+        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion));
+        if (browser is null)
+        {
+            logger.LogError("No browser found for {SubRegion}", subRegion);
+            return;
+        }
+        _browser = browser;
+        _browser.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 
     private async Task ConsoleMessageReceived(object? sender, ConsoleMessageEvent e)

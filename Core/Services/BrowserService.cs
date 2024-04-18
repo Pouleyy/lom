@@ -1,40 +1,58 @@
+using Core.Services.Interface;
 using Core.Services.Models;
+using Entities.Models;
 using Microsoft.Extensions.Logging;
-using PuppeteerSharp;
 
 namespace Core.Services;
 
-public class BrowserService
+public class BrowserService : IBrowserService
 {
-    private readonly IPage _page;
-    
-    public EventHandler<ConsoleMessageEvent> ConsoleMessageEvent { get; set; }
-    
-    public BrowserService(IPage page, ILogger<BrowserService> logger)
-    {
-        _page = page;
-        _page.Console += ConsoleMessageReceived;
-    }
+    private readonly ILogger<IBrowserService> _logger;
+    private readonly List<BrowserLom> _euBrowserLom = [];
+    private readonly List<BrowserLom> _estBrowserLom = [];
 
-    private void ConsoleMessageReceived(object? sender, ConsoleEventArgs e)
+    public BrowserService((List<string> euDataPath, List<string> estDataPath) dataPath, ILogger<IBrowserService> logger, bool headless = true)
     {
-        var message = e.Message.Text.Split(' ');
-        if(message.Length < 3) return;
-        ConsoleMessageEvent?.Invoke(this, new ConsoleMessageEvent
+        _logger = logger;
+        foreach (var (euDataPath, index) in dataPath.euDataPath.Select((value, index) => (value, index)))
         {
-            Message = message[2],
-            Response = e.Message.Args?.Last()
-        });
+             _euBrowserLom.Add(new BrowserLom(euDataPath, headless, index, Region.EU));
+        }
+        foreach (var (estDataPath, index) in dataPath.estDataPath.Select((value, index) => (value, index)))
+        {
+            _estBrowserLom.Add(new BrowserLom(estDataPath, headless, index, Region.EST));
+        }
     }
     
-    public async Task WriteToConsole(string message)
+    public async Task InitializeBrowsers()
     {
-        await _page.EvaluateExpressionAsync(message);
+        _logger.LogInformation("Initializing browsers");
+        var tasks = _euBrowserLom.Concat(_estBrowserLom).Select(browserLom => browserLom.Initialize()).ToList();
+        await Task.WhenAll(tasks);
+        _logger.LogInformation("Browsers initialized");
     }
     
-    public async Task ChangePrintLevel()
+    public async Task<BrowserLom?> GetBrowser(Region region)
     {
-        await _page.EvaluateExpressionAsync("GlobalDefine.PRINT_LEVEL = 0");
+        _logger.LogDebug("Getting browser for {Region}", region);
+        var browserLom = region switch
+        {
+            Region.EU => _euBrowserLom.FirstOrDefault(x => x.Lock.CurrentCount == 1),
+            Region.EST => _estBrowserLom.FirstOrDefault(x => x.Lock.CurrentCount == 1),
+            _ => throw new ArgumentOutOfRangeException(nameof(region), region, null)
+        };
+        if (browserLom is null)
+        {
+            return null;
+        }
+        await browserLom.Lock.WaitAsync();
+        _logger.LogDebug("Got browser {BrowserLomId} for {Region}", browserLom.Id, region);
+        return browserLom;
     }
     
+    public void ReleaseBrowser(BrowserLom browserLom)
+    {
+        _logger.LogDebug("Releasing browser {BrowserLomId} for {Region}", browserLom.Id, browserLom.Region);
+        browserLom.Lock.Release();
+    }
 }
