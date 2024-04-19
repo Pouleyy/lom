@@ -8,6 +8,7 @@ using Hangfire.Console;
 using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Server = Entities.Models.Server;
 
@@ -18,13 +19,14 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
     private int _numberOfVoidIds;
     private const int _limitVoidIds = 75;
     private int _currentServerId;
-    private List<ulong> _currentGuildIds = [];
-    private BrowserLom _browser;
-    
+    private ConcurrentDictionary<ulong, Family> _currentFamilies = [];
+    private BrowserLom? _browser;
+    private LomDbContext _lomDbContext = lomDbContext;
+
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting guild scrapper job for {SubRegion}", subRegion);
-        var subRegionServers = await lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.SubRegion == subRegion).ToListAsync(cancellationToken: cancellationToken);
+        var subRegionServers = await _lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.SubRegion == subRegion).ToListAsync(cancellationToken: cancellationToken);
         if (subRegionServers.Count == 0)
         {
             logger.LogError("No servers with subregion {SubRegion} found", subRegion);
@@ -41,15 +43,19 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         }
         finally
         {
-            browserService.ReleaseBrowser(_browser);
+            if (_browser is not null)
+            {
+                browserService.ReleaseBrowser(_browser);
+                _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
+            }
         }
         logger.LogInformation("Finished scrapping guild id for {SubRegion}", subRegion);
     }
-    
+
     public async Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting guild scrapper job for server {ServerId}", serverId);
-        var server = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == serverId, cancellationToken: cancellationToken);
+        var server = await _lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == serverId, cancellationToken: cancellationToken);
         if (server is null)
         {
             logger.LogError("Server with id {ServerId} not found", serverId);
@@ -62,36 +68,44 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         }
         finally
         {
-            browserService.ReleaseBrowser(_browser);
+            if (_browser is not null)
+            {
+                browserService.ReleaseBrowser(_browser);
+                _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
+            }
         }
     }
 
     private async Task ScrapGuildInfo(Server server, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting scrapping guild id for {ServerId}", server.ServerId);
+        logger.LogDebug("Starting scrapping guild id for {ServerId}", server.ServerId);
         if (server.MinGuildId is null)
         {
             logger.LogError("Server {ServerId} has no min guild id", server.ServerId);
             return;
         }
         _currentServerId = server.ServerId;
-        _currentGuildIds = await lomDbContext.Families.Where(x => x.ServerId == server.ServerId).Select(x => x.GuildId).ToListAsync(cancellationToken);
+        var serverFamilies = await _lomDbContext.Families.Where(x => x.ServerId == server.ServerId).ToDictionaryAsync(x => x.GuildId, cancellationToken: cancellationToken);
+        _currentFamilies = new ConcurrentDictionary<ulong, Family>(serverFamilies);
         var minGuildId = server.MinGuildId;
         while (_numberOfVoidIds < _limitVoidIds)
         {
-            await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
+            await _browser!.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
             minGuildId++;
             _numberOfVoidIds++;
             await Task.Delay(100, cancellationToken);
         }
         _numberOfVoidIds = 0;
-        server.MinGuildId = _currentGuildIds.Min();
-        await lomDbContext.SaveChangesAsync(cancellationToken);
+        await Task.Delay(2000, cancellationToken);
+        server.MinGuildId = _currentFamilies.Values.MinBy(x => x.GuildId)?.GuildId ?? minGuildId;
+        await _lomDbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("{ServerId} guild info scraped", server.ServerId);
+        await Task.Delay(2000, cancellationToken);
     }
 
     private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
     {
-        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion));
+        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion), cancellationToken);
         if (browser is null)
         {
             logger.LogError("No browser found for {SubRegion}", subRegion);
@@ -110,10 +124,17 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
                 var stringValue = jsonValue.ToString();
                 var guildInfoResponse = JsonSerializer.Deserialize<GuildInfoResponse>(stringValue!);
                 var guildInfo = guildInfoResponse!.GuildInfo;
-                logger.LogInformation("Guild members info received for guild {GuildId}", guildInfo.GuildId);
-                if (!_currentGuildIds.Contains(guildInfo.GuildId))
+                logger.LogTrace("Guild members info received for guild {GuildId}", guildInfo.GuildId);
+                if (_currentFamilies.TryGetValue(guildInfo.GuildId, out var guild))
                 {
-                    var guild = new Family
+                    guild.GuildName = guildInfo.GuildName;
+                    guild.Level = guildInfo.Level;
+                    guild.Notice = guildInfo.Notice;
+                    guild.LeaderId = guildInfo.LeaderId;
+                }
+                else
+                {
+                    var newGuild = new Family
                     {
                         GuildId = guildInfo.GuildId,
                         GuildName = guildInfo.GuildName,
@@ -123,7 +144,8 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
                         LeaderId = guildInfo.LeaderId,
                         ServerId = _currentServerId
                     };
-                    await lomDbContext.Families.AddAsync(guild);
+                    await _lomDbContext.Families.AddAsync(newGuild);
+
                 }
                 _numberOfVoidIds = 0;
                 break;

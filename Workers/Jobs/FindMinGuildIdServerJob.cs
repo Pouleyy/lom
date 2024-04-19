@@ -17,7 +17,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
 {
     private bool _guildFound;
     private ulong _minGuildId;
-    private BrowserLom _browser;
+    private BrowserLom? _browser;
 
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default)
     {
@@ -39,7 +39,11 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         }
         finally
         {
-            browserService.ReleaseBrowser(_browser);
+            if (_browser is not null)
+            {
+                browserService.ReleaseBrowser(_browser);
+                _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
+            }
         }
         logger.LogInformation("Finished scrapping guild id for {SubRegion}", subRegion);
     }
@@ -59,14 +63,18 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         }
         finally
         {
-            browserService.ReleaseBrowser(_browser);
+            if (_browser is not null)
+            {
+                browserService.ReleaseBrowser(_browser);
+                _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
+            }
         }
     }
 
 
     private async Task FindMinGuildIdServer(Server server, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting find min guild id job for server {ServerId}", server.ServerId);
+        logger.LogDebug("Starting find min guild id job for server {ServerId}", server.ServerId);
         var previousServer = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == server.ServerId - 1, cancellationToken: cancellationToken);
         if (previousServer is not null && server.MinGuildId is not null)
         {
@@ -77,12 +85,12 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         {
             if (server.MinGuildId is not null && server.MinGuildId % 10000 != 0000)
             {
-                logger.LogError("First server {ServerId} for sub region {SubRegion} already process", server.ServerId, server.SubRegion);
+                logger.LogInformation("First server {ServerId} for sub region {SubRegion} already process", server.ServerId, server.SubRegion);
                 return;
             }
             if (server.MinGuildId is null)
             {
-                logger.LogInformation("Server {ServerId} for sub region {SubRegion} has no min guild id", server.ServerId, server.SubRegion);
+                logger.LogCritical("Server {ServerId} for sub region {SubRegion} has no min guild id", server.ServerId, server.SubRegion);
                 return;
             }
         }
@@ -90,20 +98,22 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         var maxGuildId = _minGuildId + 20000;
         while (!_guildFound && _minGuildId < maxGuildId)
         {
-            await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {_minGuildId} }}, false);");
+            await _browser!.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {_minGuildId} }}, false);");
             _minGuildId += 10;
             await Task.Delay(100, cancellationToken);
         }
         server.MinGuildId = _minGuildId - 50;
+        await Task.Delay(500, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);
         _minGuildId = 0;
         _guildFound = false;
-        logger.LogInformation("Finished scrapping guild id for server {ServerId}", server.ServerId);
+        logger.LogInformation("{ServerId} min guild id scraped", server.ServerId);
+        await Task.Delay(2000, cancellationToken);
     }
 
     private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
     {
-        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion));
+        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion), cancellationToken);
         if (browser is null)
         {
             logger.LogError("No browser found for {SubRegion}", subRegion);

@@ -17,7 +17,7 @@ namespace Jobs.Jobs;
 public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browserService, ILogger<PlayerScraperJob> logger) : IPlayerScraperJob
 {
     private ConcurrentDictionary<ulong, Player> _currentPlayers = [];
-    private BrowserLom _browser;
+    private BrowserLom? _browser;
 
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top10 = false, CancellationToken cancellationToken = default)
     {
@@ -39,7 +39,11 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         }
         finally
         {
-           browserService.ReleaseBrowser(_browser); 
+            if (_browser is not null)
+            {
+                browserService.ReleaseBrowser(_browser);
+                _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
+            }
         }
         logger.LogInformation("Finished scrapping player id for {SubRegion}", subRegion);
     }
@@ -59,30 +63,36 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         }
         finally
         {
-            browserService.ReleaseBrowser(_browser);
+            if(_browser is not null)
+            {
+                browserService.ReleaseBrowser(_browser);
+                _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
+            }
         }
     }
 
     private async Task ScrapPlayerInfo(Server server, bool top10, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Starting scrapping player id for server {ServerId}", server.ServerId);
+        logger.LogTrace("Starting scrapping player id for server {ServerId}", server.ServerId);
         var guildIds = await GetGuildsIdToScrap(server, top10, cancellationToken);
         var serverPlayers = await lomDbContext.Players.Where(x => guildIds.Contains(x.GuildId)).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
         foreach (var guildId in guildIds)
         {
-            await _browser.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
+            await _browser!.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
+        logger.LogDebug("{CurrentPlayersCount} players found for server {ServerId}", _currentPlayers.Count, server.ServerId);
         foreach (var (playerId, _) in _currentPlayers)
         {
-            await _browser.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
+            await _browser!.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Finished scrapping player id for server {ServerId}", server.ServerId);
+        logger.LogInformation("{ServerId} player info scraped", server.ServerId);
+        await Task.Delay(2000, cancellationToken);
     }
 
     private async Task<List<ulong>> GetGuildsIdToScrap(Server server, bool top10, CancellationToken cancellationToken)
@@ -105,7 +115,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
 
     private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
     {
-        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion));
+        var browser = await browserService.GetBrowser(RegionHelper.SubRegionToRegion(subRegion), cancellationToken);
         if (browser is null)
         {
             logger.LogError("No browser found for {SubRegion}", subRegion);
@@ -152,7 +162,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                             LastLogin = member.IsOnline == 1 ? DateTime.UtcNow : DateTimeOffset.FromUnixTimeSeconds(member.LastLogin).UtcDateTime,
                             LastUpdate = DateTime.UtcNow
                         };
-                        _currentPlayers.AddOrUpdate(member.PlayerId, newPlayer, (key, oldValue) => newPlayer);
+                        _currentPlayers.TryAdd(member.PlayerId, newPlayer);
                         await lomDbContext.Players.AddAsync(newPlayer);
                     }
                 }
