@@ -31,10 +31,10 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
                 Height = 1039,
                 Width = 585
             },
-            Devtools = true,
+            Devtools = false,
             UserDataDir = path,
         });
-        _page = await _browser.NewPageAsync();
+        _page = (await _browser.PagesAsync()).First();
         await _page.GoToAsync("https://lom.joynetgame.com/");
         await Task.Delay(8000);
         await ChangePrintLevel();
