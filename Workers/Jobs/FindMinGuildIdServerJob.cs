@@ -90,7 +90,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         var maxGuildId = _minGuildId + 20000;
         while (!_guildFound && _minGuildId < maxGuildId)
         {
-            await _browser.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {_minGuildId}, source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {_minGuildId} }}, false);");
             _minGuildId += 10;
             await Task.Delay(100, cancellationToken);
         }
@@ -123,15 +123,13 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
     {
         switch (e.Message)
         {
-            case "guild.guild_members_info_s2c":
+            case "guild.guild_info_s2c":
                 var jsonValue = await e.Response!.JsonValueAsync();
                 var stringValue = jsonValue.ToString();
-                var guildMemberInfos = JsonSerializer.Deserialize<GuildMembersInfoResponse>(stringValue!);
-                if (guildMemberInfos is not null && guildMemberInfos.MemberList.Count > 0)
-                {
-                    _guildFound = true;
-                    _minGuildId = guildMemberInfos.GuildId;
-                }
+                var guildInfo = JsonSerializer.Deserialize<GuildInfoResponse>(stringValue!);
+                _guildFound = true;
+                _minGuildId = guildInfo!.GuildInfo.GuildId;
+                logger.LogInformation("Min guild found {GuildId}", _minGuildId);
                 break;
         }
     }
