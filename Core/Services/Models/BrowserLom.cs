@@ -5,7 +5,10 @@ namespace Core.Services.Models;
 
 public class BrowserLom(string path, bool headless, int id, Region region) : IDisposable
 {
-    public SemaphoreSlim Lock { get; } = new(1, 1);
+    private int _isInUseFlag = 0;
+
+    public bool IsInUse => _isInUseFlag == 1;
+    
     public EventHandler<ConsoleMessageEvent>? ConsoleMessageEvent { get; set; }
     public int Id { get; } = id;
     public Region Region { get; } = region;
@@ -44,6 +47,10 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
         await _page!.EvaluateExpressionAsync(message);
     }
 
+    public void LockBrowser() => Interlocked.Exchange(ref _isInUseFlag, 1);
+    
+    public void ReleaseBrowser() => Interlocked.Exchange(ref _isInUseFlag, 0);
+    
     private async Task ChangePrintLevel()
     {
         await _page!.EvaluateExpressionAsync("GlobalDefine.PRINT_LEVEL = 0");
