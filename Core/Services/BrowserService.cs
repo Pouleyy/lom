@@ -44,7 +44,7 @@ public class BrowserService : IBrowserService
         _logger.LogInformation("Browsers initialized");
     }
 
-    public async Task<BrowserLom?> GetBrowser(Region region)
+    public async Task<BrowserLom?> GetBrowser(Region region, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Getting browser for {Region}", region);
         var semaphoreSlim = region switch
@@ -53,7 +53,7 @@ public class BrowserService : IBrowserService
             Region.EST => _semaphoreSlimEst,
             _ => throw new ArgumentOutOfRangeException(nameof(region), region, null)
         };
-        await semaphoreSlim.WaitAsync();
+        await semaphoreSlim.WaitAsync(cancellationToken);
         var browserLom = region switch
         {
             Region.EU => _euBrowserLom.FirstOrDefault(x => !x.IsInUse),

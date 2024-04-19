@@ -6,6 +6,6 @@ namespace Core.Services.Interface;
 public interface IBrowserService
 {
     Task InitializeBrowsers();
-    Task<BrowserLom?> GetBrowser(Region region);
+    Task<BrowserLom?> GetBrowser(Region region, CancellationToken cancellationToken = default);
     void ReleaseBrowser(BrowserLom browserLom);
 }
