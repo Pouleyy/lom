@@ -11,11 +11,11 @@ namespace Core.Hangfire.Interfaces;
 #endif
 public interface IFindMinGuildIdServerJob
 {
-    [JobDisplayName("FindMinGuildIdServerJob : {1}")]
+    [JobDisplayName("Find min guild : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default);
 
-    [JobDisplayName("FindMinGuildIdServerJob : {1}")]
+    [JobDisplayName("Find min guild : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default);
 }

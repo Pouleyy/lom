@@ -11,11 +11,11 @@ namespace Core.Hangfire.Interfaces;
 #endif
 public interface IGuildScraperJob
 {
-    [JobDisplayName("GuildInfoScrapperJob : {1}")]
+    [JobDisplayName("Guild info : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, SubRegion subRegion, CancellationToken cancellationToken = default);
 
-    [JobDisplayName("GuildInfoScrapperJob : {1}")]
+    [JobDisplayName("Guild info : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default);
 }

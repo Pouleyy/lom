@@ -11,11 +11,11 @@ namespace Core.Hangfire.Interfaces;
 #endif
 public interface IPlayerScraperJob
 {
-    [JobDisplayName("PlayerScrapperJob : {1}")]
+    [JobDisplayName("Player info : {1} - {2}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top10 = false, CancellationToken cancellationToken = default);
 
-    [JobDisplayName("PlayerScrapperJob : {1}")]
+    [JobDisplayName("Player info : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, int serverId, CancellationToken cancellationToken = default);
 
