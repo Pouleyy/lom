@@ -1,4 +1,4 @@
-﻿using Core.Extensions;
+using Core.Extensions;
 using Core.Hangfire.Interfaces;
 using Core.Services;
 using Core.Services.Interface;
@@ -24,6 +24,7 @@ builder.Services.AddHttpClient<IJoyNetClient, JoyNetClient>();
 var app = builder.Build();
 var browserService = app.Services.GetRequiredService<IBrowserService>();
 await browserService.InitializeBrowsers();
+app.ConfigureShutdown();
 app.AddHangfireDashboard(builder.Configuration);
 app.ConfigureRecurringJob();
 app.Run(async context => await context.Response.WriteAsync("Starting LOM"));

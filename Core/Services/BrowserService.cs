@@ -80,4 +80,13 @@ public class BrowserService : IBrowserService
             _ => throw new ArgumentOutOfRangeException(nameof(browserLom.Region), browserLom.Region, null)
         };
     }
+    
+    public void Dispose()
+    {
+        _logger.LogInformation("Disposing browsers");
+        foreach (var browserLom in _euBrowserLom.Concat(_estBrowserLom))
+        {
+            browserLom.Dispose();
+        }
+    }
 }

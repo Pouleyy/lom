@@ -8,4 +8,5 @@ public interface IBrowserService
     Task InitializeBrowsers();
     Task<BrowserLom?> GetBrowser(Region region, CancellationToken cancellationToken = default);
     void ReleaseBrowser(BrowserLom browserLom);
+    void Dispose();
 }
