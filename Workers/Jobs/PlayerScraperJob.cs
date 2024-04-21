@@ -176,9 +176,19 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                 if (_currentPlayers.TryGetValue(playerInfos.PlayerId, out var playerToUpdate))
                 {
                     playerToUpdate.Power = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1020)!.Value;
+                    playerToUpdate.Level = (int)playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1001)!.Value;
                     playerToUpdate.Attack = playerInfos.SpList.FirstOrDefault(x => x.Key == 1)!.Value;
                     playerToUpdate.Defense = playerInfos.SpList.FirstOrDefault(x => x.Key == 24)!.Value;
                     playerToUpdate.Health = playerInfos.SpList.FirstOrDefault(x => x.Key == 2)!.Value;
+                    playerToUpdate.CritRate = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1004)!.Value;
+                    playerToUpdate.CritMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1005)!.Value;
+                    playerToUpdate.CritRes = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1006)!.Value;
+                    playerToUpdate.Evasion = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1008)!.Value;
+                    playerToUpdate.Combo = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1016)!.Value;
+                    playerToUpdate.Counterstrike = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1017)!.Value;
+                    playerToUpdate.Stun = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1023)!.Value;
+                    playerToUpdate.ComboMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1032)!.Value;
+                    playerToUpdate.CounterstrikeMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1033)!.Value;
                 }
                 break;
         }

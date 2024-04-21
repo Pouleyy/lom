@@ -18,6 +18,9 @@ public class Player
     [Column("profile_picture_url")]
     public string ProfilePictureUrl { get; set; } = "";
     
+    [Column("level")]
+    public int Level { get; set; }
+    
     [Column("power", TypeName = "bigint")]
     public ulong Power { get; set; }
     
@@ -29,6 +32,33 @@ public class Player
     
     [Column("health", TypeName = "bigint")]
     public ulong Health { get; set; }
+    
+    [Column("crit_rate")]
+    public int CritRate { get; set; }
+    
+    [Column("crit_multiplier")]
+    public int CritMultiplier { get; set; }
+    
+    [Column("crit_res")]
+    public int CritRes { get; set; }
+    
+    [Column("evasion")]
+    public int Evasion { get; set; }
+    
+    [Column("combo")]
+    public int Combo { get; set; }
+    
+    [Column("counterstrike")]
+    public int Counterstrike { get; set; }
+    
+    [Column("stun")]
+    public int Stun { get; set; }
+    
+    [Column("combo_multiplier")]
+    public int ComboMultiplier { get; set; }
+    
+    [Column("counterstrike_multiplier")]
+    public int CounterstrikeMultiplier { get; set; }
     
     [Column("role")]
     public Role Role { get; set; }
