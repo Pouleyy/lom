@@ -74,25 +74,27 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
     private async Task ScrapPlayerInfo(Server server, bool top10, CancellationToken cancellationToken)
     {
         logger.LogTrace("Starting scrapping player id for server {ServerId}", server.ServerId);
+        await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {top10}");
         var guildIds = await GetGuildsIdToScrap(server, top10, cancellationToken);
         var serverPlayers = await lomDbContext.Players.Where(x => guildIds.Contains(x.GuildId)).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
         foreach (var guildId in guildIds)
         {
-            await _browser!.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
         logger.LogDebug("{CurrentPlayersCount} players found for server {ServerId}", _currentPlayers.Count, server.ServerId);
         foreach (var (playerId, _) in _currentPlayers)
         {
-            await _browser!.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
+        var newPlayers = _currentPlayers.Except(serverPlayers).Select(x => x.Value);
+        await lomDbContext.Players.AddRangeAsync(newPlayers, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("{ServerId} player info scraped", server.ServerId);
-        await Task.Delay(2000, cancellationToken);
+        logger.LogInformation("{ServerId} - player info scraped", server.ServerId);
     }
 
     private async Task<List<ulong>> GetGuildsIdToScrap(Server server, bool top10, CancellationToken cancellationToken)
@@ -163,7 +165,6 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                             LastUpdate = DateTime.UtcNow
                         };
                         _currentPlayers.TryAdd(member.PlayerId, newPlayer);
-                        await lomDbContext.Players.AddAsync(newPlayer);
                     }
                 }
                 break;

@@ -75,6 +75,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
     private async Task FindMinGuildIdServer(Server server, CancellationToken cancellationToken)
     {
         logger.LogDebug("Starting find min guild id job for server {ServerId}", server.ServerId);
+        await _browser!.ChangePageTitle($"{nameof(FindMinGuildIdServerJob)} - {server.ServerId}");
         var previousServer = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == server.ServerId - 1, cancellationToken: cancellationToken);
         if (previousServer is not null && server.MinGuildId is not null)
         {
@@ -98,7 +99,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         var maxGuildId = _minGuildId + 20000;
         while (!_guildFound && _minGuildId < maxGuildId)
         {
-            await _browser!.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {_minGuildId} }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {_minGuildId} }}, false);");
             _minGuildId += 10;
             await Task.Delay(100, cancellationToken);
         }
@@ -107,7 +108,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         await lomDbContext.SaveChangesAsync(cancellationToken);
         _minGuildId = 0;
         _guildFound = false;
-        logger.LogInformation("{ServerId} min guild id scraped", server.ServerId);
+        logger.LogInformation("{ServerId} - min guild id scraped", server.ServerId);
         await Task.Delay(2000, cancellationToken);
     }
 
@@ -139,7 +140,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
                 var guildInfo = JsonSerializer.Deserialize<GuildInfoResponse>(stringValue!);
                 _guildFound = true;
                 _minGuildId = guildInfo!.GuildInfo.GuildId;
-                logger.LogInformation("Min guild found {GuildId}", _minGuildId);
+                logger.LogTrace("Min guild found {GuildId}", _minGuildId);
                 break;
         }
     }

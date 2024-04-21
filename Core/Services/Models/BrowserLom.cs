@@ -36,7 +36,7 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
         });
         _page = (await _browser.PagesAsync()).First();
         await _page.GoToAsync("https://lom.joynetgame.com/");
-        await Task.Delay(8000);
+        await Task.Delay(9000);
         await ChangePrintLevel();
         _page.Console += ConsoleMessageReceived;
         _initialized = true;
@@ -45,6 +45,11 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
     public async Task WriteToConsole(string message)
     {
         await _page!.EvaluateExpressionAsync(message);
+    }
+    
+    public async Task ChangePageTitle(string title)
+    {
+        await _page!.EvaluateExpressionAsync($"document.title = '{title}'");
     }
 
     public void LockBrowser() => Interlocked.Exchange(ref _isInUseFlag, 1);

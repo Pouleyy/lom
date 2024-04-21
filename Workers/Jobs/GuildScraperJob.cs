@@ -79,6 +79,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
     private async Task ScrapGuildInfo(Server server, CancellationToken cancellationToken)
     {
         logger.LogDebug("Starting scrapping guild id for {ServerId}", server.ServerId);
+        await _browser!.ChangePageTitle($"{nameof(GuildScraperJob)} - {server.ServerId}");
         if (server.MinGuildId is null)
         {
             logger.LogError("Server {ServerId} has no min guild id", server.ServerId);
@@ -90,7 +91,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         var minGuildId = server.MinGuildId;
         while (_numberOfVoidIds < _limitVoidIds)
         {
-            await _browser!.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
+            await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
             minGuildId++;
             _numberOfVoidIds++;
             await Task.Delay(100, cancellationToken);
@@ -98,9 +99,10 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         _numberOfVoidIds = 0;
         await Task.Delay(2000, cancellationToken);
         server.MinGuildId = _currentFamilies.Values.MinBy(x => x.GuildId)?.GuildId ?? minGuildId;
+        var newFamilies = _currentFamilies.Except(serverFamilies).Select(x => x.Value);
+        await _lomDbContext.Families.AddRangeAsync(newFamilies, cancellationToken);
         await _lomDbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("{ServerId} guild info scraped", server.ServerId);
-        await Task.Delay(2000, cancellationToken);
+        logger.LogInformation("{ServerId} - guild info scraped", server.ServerId);
     }
 
     private async Task PrepareBrowser(SubRegion subRegion, CancellationToken cancellationToken)
@@ -144,8 +146,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
                         LeaderId = guildInfo.LeaderId,
                         ServerId = _currentServerId
                     };
-                    await _lomDbContext.Families.AddAsync(newGuild);
-
+                    _currentFamilies.TryAdd(guildInfo.GuildId, newGuild);
                 }
                 _numberOfVoidIds = 0;
                 break;
