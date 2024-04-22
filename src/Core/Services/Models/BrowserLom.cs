@@ -20,8 +20,7 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
     public async Task Initialize()
     {
         if (_initialized) return;
-        _ = new BrowserFetcher().DownloadAsync().Result;
-
+        Console.WriteLine($"Initialize {path} - {headless} - {id} - {region}");
         _browser = await Puppeteer.LaunchAsync(new LaunchOptions
         {
             Headless = headless,
