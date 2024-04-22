@@ -20,6 +20,8 @@ builder.Services.AddScoped<IGuildScraperJob, GuildScraperJob>();
 builder.Services.AddScoped<IPlayerScraperJob, PlayerScraperJob>();
 builder.Services.AddScoped<IServerScraperJob, ServerScraperJob>();
 builder.Services.AddHttpClient<IJoyNetClient, JoyNetClient>();
+builder.Services.AddScoped<IGSheetService, GSheetService>();
+builder.Services.AddScoped<ILeaderboardGSheetJob, LeaderboardGSheetJob>();
 
 var app = builder.Build();
 var browserService = app.Services.GetRequiredService<IBrowserService>();

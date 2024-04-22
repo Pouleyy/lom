@@ -9,5 +9,6 @@ public class WorkerConstants
         public const string Dev = "dev";
         public const string Scraping = "scraping";
         public const string ServerScraping = "server-scraping";
+        public const string GSheet = "gsheet";
     }
 }
