@@ -1,4 +1,4 @@
-using Core.Extensions;
+﻿using Core.Extensions;
 using Core.Hangfire.Interfaces;
 using Core.Services;
 using Core.Services.Interface;
@@ -19,9 +19,9 @@ builder.Services.AddScoped<IFindMinGuildIdServerJob, FindMinGuildIdServerJob>();
 builder.Services.AddScoped<IGuildScraperJob, GuildScraperJob>();
 builder.Services.AddScoped<IPlayerScraperJob, PlayerScraperJob>();
 builder.Services.AddScoped<IServerScraperJob, ServerScraperJob>();
-builder.Services.AddHttpClient<IJoyNetClient, JoyNetClient>();
 builder.Services.AddScoped<IGSheetService, GSheetService>();
 builder.Services.AddScoped<ILeaderboardGSheetJob, LeaderboardGSheetJob>();
+builder.Services.AddHttpClient<IJoyNetClient, JoyNetClient>();
 
 var app = builder.Build();
 var browserService = app.Services.GetRequiredService<IBrowserService>();

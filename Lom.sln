@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Entities", "Entities\Entities.csproj", "{66C86A2B-FB32-4B7D-A493-609E01DB9767}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Entities", "src\Entities\Entities.csproj", "{66C86A2B-FB32-4B7D-A493-609E01DB9767}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Workers", "Workers\Workers.csproj", "{07CAFFF2-43CB-4890-AEEB-6EFC16B892CF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Workers", "src\Workers\Workers.csproj", "{07CAFFF2-43CB-4890-AEEB-6EFC16B892CF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lom", "Lom\Lom.csproj", "{76F97789-4877-4EE0-B209-CFA76BC4CF5D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lom", "src\Lom\Lom.csproj", "{76F97789-4877-4EE0-B209-CFA76BC4CF5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{BEF4B557-4C46-4259-B911-422B6BC7FFE3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "src\Core\Core.csproj", "{BEF4B557-4C46-4259-B911-422B6BC7FFE3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

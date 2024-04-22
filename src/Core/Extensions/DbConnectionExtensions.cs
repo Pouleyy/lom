@@ -14,7 +14,7 @@ public static partial class ServiceCollectionExtensions
         {
             throw new ArgumentNullException(nameof(lomConnectionString), "Lom connection string not specified in configuration");
         }
-        services.AddDbContext<LomDbContext>(options => options.UseNpgsql(lomConnectionString), ServiceLifetime.Transient);
+        services.AddDbContext<LomDbContext>(options => options.UseNpgsql(lomConnectionString));
         return services;
     }
 }
