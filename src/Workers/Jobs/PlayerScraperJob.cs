@@ -168,6 +168,12 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                         _currentPlayers.TryAdd(member.PlayerId, newPlayer);
                     }
                 }
+                //For each player with guildId in guildMemberInfos.GuildId but without in guildMemberInfos.MemberList, set guildId to 0
+                foreach (var (playerId, player) in _currentPlayers.Where(x => x.Value.GuildId == guildMemberInfos.GuildId))
+                {
+                    if (guildMemberInfos.MemberList.Any(x => x.PlayerId == playerId)) continue;
+                    player.GuildId = 0;
+                }
                 break;
             case "role.role_others_s2c":
                 var jsonMember = await e.Response!.JsonValueAsync();
