@@ -76,7 +76,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         logger.LogTrace("Starting scrapping player id for server {ServerId}", server.ServerId);
         await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {top10}");
         var guildIds = await GetGuildsIdToScrap(server, top10, cancellationToken);
-        var serverPlayers = await lomDbContext.Players.Where(x => guildIds.Contains(x.GuildId)).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
+        var serverPlayers = await lomDbContext.Players.Where(x => x.Family.ServerId == server.ServerId).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
         foreach (var guildId in guildIds)
         {
@@ -85,13 +85,14 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         }
         await Task.Delay(2000, cancellationToken);
         logger.LogDebug("{CurrentPlayersCount} players found for server {ServerId}", _currentPlayers.Count, server.ServerId);
-        foreach (var (playerId, _) in _currentPlayers)
+        foreach (var (playerId, _) in _currentPlayers.Where(x => guildIds.Contains(x.Value.GuildId)))
         {
             await _browser.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
         }
         await Task.Delay(2000, cancellationToken);
-        var newPlayers = _currentPlayers.Except(serverPlayers).Select(x => x.Value);
+        var newPlayers = _currentPlayers.Except(serverPlayers).Select(x => x.Value).ToList();
+        logger.LogDebug("{NewPlayersCount} new players to add", newPlayers.Count);
         await lomDbContext.Players.AddRangeAsync(newPlayers, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation("{ServerId} - player info scraped", server.ServerId);
