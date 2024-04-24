@@ -63,7 +63,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         }
         finally
         {
-            if(_browser is not null)
+            if (_browser is not null)
             {
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
@@ -93,8 +93,11 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         await Task.Delay(2000, cancellationToken);
         var newPlayers = _currentPlayers.Except(serverPlayers).Select(x => x.Value).ToList();
         logger.LogDebug("{NewPlayersCount} new players to add", newPlayers.Count);
+        //Log players ids in one log
+        logger.LogDebug("New players ids : {PlayerIds}", string.Join(", ", newPlayers.Select(x => x.PlayerId)));
         await lomDbContext.Players.AddRangeAsync(newPlayers, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);
+        _currentPlayers.Clear();
         logger.LogInformation("{ServerId} - player info scraped", server.ServerId);
     }
 
@@ -168,7 +171,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                         _currentPlayers.TryAdd(member.PlayerId, newPlayer);
                     }
                 }
-                //For each player with guildId in guildMemberInfos.GuildId but without in guildMemberInfos.MemberList, set guildId to 0
+                //For each player with guildId in guildMemberInfos.GuildId but without in guildMemberInfos.MemberList, set guildId to 0 because not in guild anymore
                 foreach (var (playerId, player) in _currentPlayers.Where(x => x.Value.GuildId == guildMemberInfos.GuildId))
                 {
                     if (guildMemberInfos.MemberList.Any(x => x.PlayerId == playerId)) continue;
