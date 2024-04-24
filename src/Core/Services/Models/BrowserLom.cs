@@ -24,7 +24,7 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
         _browser = await Puppeteer.LaunchAsync(new LaunchOptions
         {
             Headless = headless,
-            Args = ["--window-size=585,1039", "--disable-save-password-bubble"],
+            Args = ["--window-size=585,1039", "--disable-save-password-bubble", "--no-sandbox"],
             DefaultViewport = new ViewPortOptions()
             {
                 Height = 1039,
