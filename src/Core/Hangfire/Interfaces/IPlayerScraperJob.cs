@@ -13,7 +13,7 @@ public interface IPlayerScraperJob
 {
     [JobDisplayName("Player info : {1} - {2}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
-    Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top10 = false, CancellationToken cancellationToken = default);
+    Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top3 = false, CancellationToken cancellationToken = default);
 
     [JobDisplayName("Player info : {1}")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]

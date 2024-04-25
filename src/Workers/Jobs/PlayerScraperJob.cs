@@ -19,7 +19,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
     private ConcurrentDictionary<ulong, Player> _currentPlayers = [];
     private BrowserLom? _browser;
 
-    public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top10 = false, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top3 = false, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting player scrapper job for {SubRegion}", subRegion);
         var subRegionServers = await lomDbContext.Servers.OrderBy(x => x.ServerId).Where(x => x.SubRegion == subRegion).ToListAsync(cancellationToken: cancellationToken);
@@ -34,7 +34,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
             var progress = context.WriteProgressBar();
             foreach (var server in subRegionServers.WithProgress(progress))
             {
-                await ScrapPlayerInfo(server, top10, cancellationToken);
+                await ScrapPlayerInfo(server, top3, cancellationToken);
             }
         }
         finally
@@ -71,11 +71,11 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         }
     }
 
-    private async Task ScrapPlayerInfo(Server server, bool top10, CancellationToken cancellationToken)
+    private async Task ScrapPlayerInfo(Server server, bool top3, CancellationToken cancellationToken)
     {
         logger.LogTrace("Starting scrapping player id for server {ServerId}", server.ServerId);
-        await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {top10}");
-        var guildIds = await GetGuildsIdToScrap(server, top10, cancellationToken);
+        await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {(top3 ? "Top 3" : "Full")}");
+        var guildIds = await GetGuildsIdToScrap(server, top3, cancellationToken);
         var serverPlayers = await lomDbContext.Players.Where(x => x.Family.ServerId == server.ServerId).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
         foreach (var guildId in guildIds)
@@ -101,9 +101,9 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         logger.LogInformation("{ServerId} - player info scraped", server.ServerId);
     }
 
-    private async Task<List<ulong>> GetGuildsIdToScrap(Server server, bool top10, CancellationToken cancellationToken)
+    private async Task<List<ulong>> GetGuildsIdToScrap(Server server, bool top3, CancellationToken cancellationToken)
     {
-        return top10
+        return top3
             ? await lomDbContext.Families
                                 .Where(x => x.ServerId == server.ServerId)
                                 .Select(family => new
@@ -112,7 +112,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                                      TotalPower = family.Players.Sum(player => (long)player.Power)
                                  })
                                 .OrderByDescending(x => x.TotalPower)
-                                .Take(10)
+                                .Take(3)
                                 .Select(x => x.Family.GuildId)
                                 .ToListAsync(cancellationToken)
             : await lomDbContext.Families.Where(x => x.ServerId == server.ServerId).Select(x => x.GuildId).ToListAsync(cancellationToken);
