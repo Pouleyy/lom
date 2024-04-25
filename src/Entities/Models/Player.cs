@@ -73,9 +73,14 @@ public class Player
     public DateTime LastUpdate { get; set; }
     
     [Column("guild_id", TypeName = "bigint")]
-    public ulong GuildId { get; set; }
+    public ulong? GuildId { get; set; }
     
-    public virtual Family Family { get; set; } = null!;
+    [Column("server_id", TypeName = "bigint")]
+    public int? ServerId { get; set; }
+    
+    public virtual Family? Family { get; set; }
+    
+    public virtual Server? Server { get; set; }
     
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -102,5 +107,8 @@ public class Player
         
         modelBuilder.Entity<Player>()
                     .HasIndex(p => p.Power);
+        
+        modelBuilder.Entity<Player>()
+                    .HasIndex(p => p.ServerId);
     }
 }
