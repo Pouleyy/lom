@@ -33,7 +33,7 @@ public class LeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gShe
         logger.LogInformation("Finished Leaderboard GSheet job");
     }
 
-    private Dictionary<SubRegion, (long full, long top3)> GetLastExecutionTimeBySubRegion()
+    private static Dictionary<SubRegion, (long full, long top3)> GetLastExecutionTimeBySubRegion()
     {
         var lastExecutionTimeBySubRegion = new Dictionary<SubRegion, (long full, long top3)>();
         using var connection = JobStorage.Current.GetConnection();
@@ -43,13 +43,13 @@ public class LeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gShe
             var recurringJobTop3 = connection.GetRecurringJobs().FirstOrDefault(x => x.Id == $"Player info top 3 - {subregion}");
             if (recurringJobFull != null && recurringJobTop3 != null && recurringJobFull.LastExecution.HasValue && recurringJobTop3.LastExecution.HasValue)
             {
-                var fullTimestamp = (DateTime.Now - recurringJobFull.LastExecution.Value).TotalMilliseconds;
-                var top3Timestamp = (DateTime.Now - recurringJobTop3.LastExecution.Value).TotalMilliseconds;
-                lastExecutionTimeBySubRegion.Add(subregion, ((long)fullTimestamp, (long)top3Timestamp));
+                var fullTimestamp = ((DateTimeOffset)recurringJobFull.LastExecution.Value).ToUnixTimeMilliseconds();
+                var top3Timestamp = ((DateTimeOffset)recurringJobTop3.LastExecution.Value).ToUnixTimeMilliseconds();
+                lastExecutionTimeBySubRegion.Add(subregion, (fullTimestamp, top3Timestamp));
             }
             else
             {
-                lastExecutionTimeBySubRegion.Add(subregion, (0, 0));
+                lastExecutionTimeBySubRegion.Add(subregion, (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
             }
         }
         return lastExecutionTimeBySubRegion;
