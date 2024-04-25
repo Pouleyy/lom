@@ -1,6 +1,7 @@
 using Core.Services.Interface;
 using Core.Services.Models;
 using Entities.Context;
+using Entities.Models;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
@@ -34,8 +35,10 @@ public class GSheetService : IGSheetService
     public async Task WriteTop10Guilds(List<IEnumerable<FamilyLeadboard>> families, CancellationToken cancellationToken = default)
     {
         var range = $"{_leaderBoardSheetName}!A2";
-        var valueRange = new ValueRange();
-        valueRange.Values = new List<IList<object>>();
+        var valueRange = new ValueRange
+        {
+            Values = new List<IList<object>>()
+        };
         foreach (var familyLeadboard in families.SelectMany(family => family))
         {
             valueRange.Values.Add(new List<object> { familyLeadboard.ServerId, familyLeadboard.FamilyName, familyLeadboard.Power });
@@ -43,5 +46,20 @@ public class GSheetService : IGSheetService
         var request = _sheetsService.Spreadsheets.Values.Update(valueRange, _leaderBoardSheetId, range);
         request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
         await request.ExecuteAsync(cancellationToken);
+    }
+
+    public async Task WriteLastExecutionTimeBySubRegion(Dictionary<SubRegion, (long full, long top3)> lastExecutionTimeBySubRegion, CancellationToken cancellationToken)
+    {
+        foreach (var subRegion in Enum.GetValues<SubRegion>())
+        {
+            var range = $"{subRegion} Rankings!Q2";
+            var valueRange = new ValueRange
+            {
+                Values = new List<IList<object>> { new List<object> { lastExecutionTimeBySubRegion[subRegion].full, lastExecutionTimeBySubRegion[subRegion].top3 } }
+            };
+            var request = _sheetsService.Spreadsheets.Values.Update(valueRange, _leaderBoardSheetId, range);
+            request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+            await request.ExecuteAsync(cancellationToken);
+        }
     }
 }
