@@ -17,6 +17,7 @@ namespace Jobs.Jobs;
 public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browserService, ILogger<PlayerScraperJob> logger) : IPlayerScraperJob
 {
     private ConcurrentDictionary<ulong, Player> _currentPlayers = [];
+    private int _currentServerId;
     private BrowserLom? _browser;
 
     public async Task ExecuteAsync(PerformContext context, SubRegion subRegion, bool top3 = false, CancellationToken cancellationToken = default)
@@ -76,8 +77,9 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         logger.LogTrace("Starting scrapping player id for server {ServerId}", server.ServerId);
         await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {(top3 ? "Top 3" : "Full")}");
         var guildIds = await GetGuildsIdToScrap(server, top3, cancellationToken);
-        var serverPlayers = await lomDbContext.Players.Where(x => x.Family.ServerId == server.ServerId).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
+        var serverPlayers = await lomDbContext.Players.Where(x => x.ServerId == server.ServerId).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
+        _currentServerId = server.ServerId;
         foreach (var guildId in guildIds)
         {
             await _browser.WriteToConsole($"netManager.send(\"guild.guild_members_info_c2s\", {{ guild_id: {guildId}, source: undefined }}, false);");
@@ -85,7 +87,8 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         }
         await Task.Delay(2000, cancellationToken);
         logger.LogDebug("{CurrentPlayersCount} players found for server {ServerId}", _currentPlayers.Count, server.ServerId);
-        foreach (var (playerId, _) in _currentPlayers.Where(x => guildIds.Contains(x.Value.GuildId)))
+        var playerToProcess = top3 ? _currentPlayers.Where(x => x.Value.GuildId != null && guildIds.Contains(x.Value.GuildId.Value)) : _currentPlayers;
+        foreach (var (playerId, _) in playerToProcess)
         {
             await _browser.WriteToConsole($"netManager.send(\"role.role_others_c2s\", {{ role_id: [{playerId}], source: undefined }}, false);");
             await Task.Delay(100, cancellationToken);
@@ -162,6 +165,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                             Uid = ConvertPlayerIdToUid(member.PlayerId),
                             PlayerName = member.PlayerName,
                             GuildId = guildMemberInfos.GuildId,
+                            ServerId = _currentServerId,
                             DonationWeekly = member.DonateWeek,
                             ProfilePictureUrl = member.RoleHead.Url,
                             Role = Enum.Parse<Role>(member.Role.ToString()),
@@ -175,7 +179,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                 foreach (var (playerId, player) in _currentPlayers.Where(x => x.Value.GuildId == guildMemberInfos.GuildId))
                 {
                     if (guildMemberInfos.MemberList.Any(x => x.PlayerId == playerId)) continue;
-                    player.GuildId = 0;
+                    player.GuildId = null;
                 }
                 break;
             case "role.role_others_s2c":
