@@ -79,7 +79,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
     private async Task ScrapGuildInfo(Server server, CancellationToken cancellationToken)
     {
         logger.LogDebug("Starting scrapping guild id for {ServerId}", server.ServerId);
-        await _browser!.ChangePageTitle($"{nameof(GuildScraperJob)} - {server.ServerId}");
+        //await _browser!.ChangePageTitle($"{nameof(GuildScraperJob)} - {server.ServerId}");
         if (server.MinGuildId is null)
         {
             logger.LogError("Server {ServerId} has no min guild id", server.ServerId);

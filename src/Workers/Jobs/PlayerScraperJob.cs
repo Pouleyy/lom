@@ -75,7 +75,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
     private async Task ScrapPlayerInfo(Server server, bool top3, CancellationToken cancellationToken)
     {
         logger.LogTrace("Starting scrapping player id for server {ServerId}", server.ServerId);
-        await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {(top3 ? "Top 3" : "Full")}");
+        //await _browser!.ChangePageTitle($"{nameof(PlayerScraperJob)} - {server.ServerId} - {(top3 ? "Top 3" : "Full")}");
         var guildIds = await GetGuildsIdToScrap(server, top3, cancellationToken);
         var serverPlayers = await lomDbContext.Players.Where(x => x.ServerId == server.ServerId).ToDictionaryAsync(x => x.PlayerId, cancellationToken: cancellationToken);
         _currentPlayers = new ConcurrentDictionary<ulong, Player>(serverPlayers);
@@ -96,7 +96,6 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         await Task.Delay(2000, cancellationToken);
         var newPlayers = _currentPlayers.Except(serverPlayers).Select(x => x.Value).ToList();
         logger.LogDebug("{NewPlayersCount} new players to add", newPlayers.Count);
-        //Log players ids in one log
         logger.LogDebug("New players ids : {PlayerIds}", string.Join(", ", newPlayers.Select(x => x.PlayerId)));
         await lomDbContext.Players.AddRangeAsync(newPlayers, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);

@@ -75,7 +75,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
     private async Task FindMinGuildIdServer(Server server, CancellationToken cancellationToken)
     {
         logger.LogDebug("Starting find min guild id job for server {ServerId}", server.ServerId);
-        await _browser!.ChangePageTitle($"{nameof(FindMinGuildIdServerJob)} - {server.ServerId}");
+        //await _browser!.ChangePageTitle($"{nameof(FindMinGuildIdServerJob)} - {server.ServerId}");
         var previousServer = await lomDbContext.Servers.FirstOrDefaultAsync(x => x.ServerId == server.ServerId - 1, cancellationToken: cancellationToken);
         if (previousServer is not null && server.MinGuildId is not null)
         {

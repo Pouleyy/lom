@@ -46,7 +46,7 @@ public static partial class ServiceCollectionExtensions
         foreach (var (subregion, index) in Enum.GetValues<SubRegion>().Select((subRegion, index) => (subRegion, index)))
         {
             RecurringJob.AddOrUpdate<IFindMinGuildIdServerJob>($"Find min guild id - {subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"0 {index} */3 * *");
-            RecurringJob.AddOrUpdate<IGuildScraperJob>($"Guild infos - {subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"0 {index} */2 * *");
+            RecurringJob.AddOrUpdate<IGuildScraperJob>($"Guild infos - {subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"10 {index} */2 * *");
             RecurringJob.AddOrUpdate<IPlayerScraperJob>($"Player info top 3 - {subregion}", job => job.ExecuteAsync(null, subregion, true, CancellationToken.None), $"30 {index} * * 0,2,3,4,6");
             RecurringJob.AddOrUpdate<IPlayerScraperJob>($"Player info full - {subregion}", job => job.ExecuteAsync(null, subregion, false, CancellationToken.None), $"30 {index} * * 1,5");
         }
