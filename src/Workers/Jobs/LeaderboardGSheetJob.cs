@@ -41,16 +41,17 @@ public class LeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gShe
         {
             var recurringJobFull = connection.GetRecurringJobs().FirstOrDefault(x => x.Id == $"Player info full - {subregion}");
             var recurringJobTop3 = connection.GetRecurringJobs().FirstOrDefault(x => x.Id == $"Player info top 3 - {subregion}");
-            if (recurringJobFull != null && recurringJobTop3 != null && recurringJobFull.LastExecution.HasValue && recurringJobTop3.LastExecution.HasValue)
+            var fullTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var top3Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (recurringJobFull != null && recurringJobFull.LastExecution.HasValue)
             {
-                var fullTimestamp = ((DateTimeOffset)recurringJobFull.LastExecution.Value).ToUnixTimeMilliseconds();
-                var top3Timestamp = ((DateTimeOffset)recurringJobTop3.LastExecution.Value).ToUnixTimeMilliseconds();
-                lastExecutionTimeBySubRegion.Add(subregion, (fullTimestamp, top3Timestamp));
+                fullTimestamp = ((DateTimeOffset)recurringJobFull.LastExecution.Value).ToUnixTimeMilliseconds();
             }
-            else
+            if (recurringJobTop3 != null && recurringJobTop3.LastExecution.HasValue)
             {
-                lastExecutionTimeBySubRegion.Add(subregion, (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+                top3Timestamp = ((DateTimeOffset)recurringJobTop3.LastExecution.Value).ToUnixTimeMilliseconds();
             }
+            lastExecutionTimeBySubRegion.Add(subregion, (fullTimestamp, top3Timestamp));
         }
         return lastExecutionTimeBySubRegion;
     }
