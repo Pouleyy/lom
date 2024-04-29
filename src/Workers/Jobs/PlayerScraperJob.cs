@@ -153,6 +153,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                         player.Role = Enum.Parse<Role>(member.Role.ToString());
                         player.LastLogin = member.IsOnline == 1 ? DateTime.UtcNow : DateTimeOffset.FromUnixTimeSeconds(member.LastLogin).UtcDateTime;
                         player.DonationWeekly = member.DonateWeek;
+                        player.GuildId = guildMemberInfos.GuildId;
                         player.ProfilePictureUrl = member.RoleHead.Url;
                         player.LastUpdate = DateTime.UtcNow;
                     }
