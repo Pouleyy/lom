@@ -4,5 +4,4 @@ public enum Region
 {
     EST,
     EU,
-    DUMMY = -1
 }
