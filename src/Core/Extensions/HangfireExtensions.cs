@@ -1,5 +1,6 @@
 using Core.Hangfire;
 using Core.Hangfire.Interfaces;
+using Core.Helpers;
 using Entities.Models;
 using Hangfire;
 using Hangfire.Console.Extensions;
@@ -45,10 +46,13 @@ public static partial class ServiceCollectionExtensions
         RecurringJob.AddOrUpdate<ILeaderboardGSheetJob>("Leaderboard GSheet", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(0));
         foreach (var (subregion, index) in Enum.GetValues<SubRegion>().Select((subRegion, index) => (subRegion, index)))
         {
+            var region = RegionHelper.SubRegionToRegion(subregion);
             RecurringJob.AddOrUpdate<IFindMinGuildIdServerJob>($"Find min guild id - {subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"0 {index} */3 * *");
-            RecurringJob.AddOrUpdate<IGuildScraperJob>($"Guild infos - {subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"10 {index} */2 * *");
-            RecurringJob.AddOrUpdate<IPlayerScraperJob>($"Player info top 3 - {subregion}", job => job.ExecuteAsync(null, subregion, true, CancellationToken.None), $"30 {index} * * 0,2,3,4,6");
-            RecurringJob.AddOrUpdate<IPlayerScraperJob>($"Player info full - {subregion}", job => job.ExecuteAsync(null, subregion, false, CancellationToken.None), $"30 {index} * * 1,5");
+            RecurringJob.AddOrUpdate<IGuildScraperJob>($"Guild infos - {subregion}", job => job.ExecuteAsync(null, subregion, CancellationToken.None), $"10 {(region == Region.EST ? "6" : "9")} * * 0,2,3,4,6");
+            RecurringJob.AddOrUpdate<IPlayerScraperJob>($"Player info top 3 - {subregion}", job => job.ExecuteAsync(null, subregion, true, CancellationToken.None),
+                $"30 {(region == Region.EST ? "0,12" : "3,15")} * * 0,2,3,4,6");
+            RecurringJob.AddOrUpdate<IPlayerScraperJob>($"Player info full - {subregion}", job => job.ExecuteAsync(null, subregion, false, CancellationToken.None),
+                $"30 {(region == Region.EST ? 0 : 4)} * * 1,5");
         }
     }
 }
