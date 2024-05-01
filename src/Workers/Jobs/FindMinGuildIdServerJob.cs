@@ -41,6 +41,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         {
             if (_browser is not null)
             {
+                await _browser.CloseBrowser();
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
             }
@@ -65,6 +66,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
         {
             if (_browser is not null)
             {
+                await _browser.CloseBrowser();
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
             }
@@ -121,6 +123,7 @@ public class FindMinGuildIdServerJob(LomDbContext lomDbContext, IBrowserService 
             return;
         }
         _browser = browser;
+        await _browser.Initialize();
         _browser.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 

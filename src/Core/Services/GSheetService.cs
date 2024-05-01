@@ -1,6 +1,5 @@
 using Core.Services.Interface;
 using Core.Services.Models;
-using Entities.Context;
 using Entities.Models;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
@@ -12,15 +11,13 @@ namespace Core.Services;
 
 public class GSheetService : IGSheetService
 {
-    private readonly LomDbContext _context;
     static readonly string[] Scopes = [SheetsService.Scope.Spreadsheets];
     private SheetsService _sheetsService { get; set; }
     private string _leaderBoardSheetId { get; set; }
     private string _leaderBoardSheetName { get; set; }
     
-    public GSheetService(LomDbContext context, IConfiguration configuration)
+    public GSheetService(IConfiguration configuration)
     {
-        _context = context;
         _leaderBoardSheetId = configuration.GetSection("GSheet:Leaderboard:SheetId").Value ?? throw new ArgumentNullException("Missing leaderboard sheet id in configuration");
         _leaderBoardSheetName = configuration.GetSection("GSheet:Leaderboard:SheetName").Value ?? throw new ArgumentNullException("Missing leaderboard sheet name in configuration");
         var credentialsFile = configuration.GetSection("GSheet:CredentialsPath").Value ?? throw new ArgumentNullException("Missing credentials file path in configuration");

@@ -45,6 +45,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         {
             if (_browser is not null)
             {
+                await _browser.CloseBrowser();
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
             }
@@ -70,6 +71,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         {
             if (_browser is not null)
             {
+                await _browser.CloseBrowser();
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
             }
@@ -114,6 +116,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
             return;
         }
         _browser = browser;
+        await _browser.Initialize();
         _browser.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 

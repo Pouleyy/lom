@@ -42,6 +42,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         {
             if (_browser is not null)
             {
+                await _browser.CloseBrowser();
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
             }
@@ -66,6 +67,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         {
             if (_browser is not null)
             {
+                await _browser.CloseBrowser();
                 browserService.ReleaseBrowser(_browser);
                 _browser.ConsoleMessageEvent -= async (sender, e) => await ConsoleMessageReceived(sender, e);
             }
@@ -130,6 +132,7 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
             return;
         }
         _browser = browser;
+        await _browser.Initialize();
         _browser.ConsoleMessageEvent += async (sender, e) => await ConsoleMessageReceived(sender, e);
     }
 

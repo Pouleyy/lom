@@ -71,5 +71,12 @@ public class BrowserLom(string path, bool headless, int id, Region region) : IDi
         });
     }
 
+    public async Task CloseBrowser()
+    {
+        if (_browser is null) return;
+        _initialized = false;
+        await _browser.CloseAsync();
+    }
+    
     public void Dispose() => _browser?.Dispose();
 }
