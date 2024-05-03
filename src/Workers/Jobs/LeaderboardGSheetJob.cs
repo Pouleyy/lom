@@ -27,6 +27,11 @@ public class LeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gShe
                                                        .Select(x => x.OrderByDescending(y => y.Power).Take(10))
                                                        .ToListAsync(cancellationToken);
         top10FamiliesPerServer = top10FamiliesPerServer.Where(x => x.Count() == 10).ToList();
+        foreach (var unityFamily in top10FamiliesPerServer.Select(top10Families => top10Families.FirstOrDefault(x => x.FamilyName == "Unity")).OfType<FamilyLeadboard>())
+        {
+            unityFamily.FamilyName = "UnitY";
+            break;
+        }
         await gSheetService.WriteTop10Guilds(top10FamiliesPerServer, cancellationToken);
         var lastExecutionTimeBySubRegion = GetLastExecutionTimeBySubRegion();
         await gSheetService.WriteLastExecutionTimeBySubRegion(lastExecutionTimeBySubRegion, cancellationToken);
