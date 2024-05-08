@@ -24,6 +24,9 @@ public class Player
     [Column("power", TypeName = "bigint")]
     public ulong Power { get; set; }
     
+    [Column("class")]
+    public PlayerClass? Class { get; set; }
+    
     [Column("attack", TypeName = "bigint")]
     public ulong Attack { get; set; }
     
@@ -78,9 +81,12 @@ public class Player
     [Column("server_id", TypeName = "bigint")]
     public int? ServerId { get; set; }
     
+    [Column("spouse_id", TypeName = "bigint")]
+    public ulong? SpouseId { get; set; }
+    
     public virtual Family? Family { get; set; }
     
-    public virtual Server? Server { get; set; }
+    public virtual Player? Spouse { get; set; }
     
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -95,6 +101,15 @@ public class Player
         modelBuilder.Entity<Player>()
                     .Property(p => p.Role)
                     .HasConversion<int>();
+        
+        modelBuilder.Entity<Player>()
+                    .Property(p => p.Class)
+                    .HasConversion<int>();
+
+        modelBuilder.Entity<Player>()
+                    .HasOne(p => p.Spouse)
+                    .WithOne()
+                    .HasForeignKey<Player>(p => p.SpouseId);
         
         modelBuilder.Entity<Player>()
                     .HasOne(p => p.Family)

@@ -193,8 +193,11 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
                 var playerInfos = roleOthersResponse.Players.First();
                 if (_currentPlayers.TryGetValue(playerInfos.PlayerId, out var playerToUpdate))
                 {
+                    var spouseId = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1027)!.Value;
                     playerToUpdate.Power = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1020)!.Value;
                     playerToUpdate.Level = (int)playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1001)!.Value;
+                    playerToUpdate.Class = Enum.Parse<PlayerClass>(playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1008)!.Value.ToString());
+                    playerToUpdate.SpouseId = spouseId == 0 ? null : spouseId;
                     playerToUpdate.Attack = playerInfos.SpList.FirstOrDefault(x => x.Key == 1)!.Value;
                     playerToUpdate.Defense = playerInfos.SpList.FirstOrDefault(x => x.Key == 24)!.Value;
                     playerToUpdate.Health = playerInfos.SpList.FirstOrDefault(x => x.Key == 2)!.Value;
