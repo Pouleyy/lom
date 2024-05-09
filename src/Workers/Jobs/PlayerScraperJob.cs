@@ -99,6 +99,12 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
         var newPlayers = _currentPlayers.Except(serverPlayers).Select(x => x.Value).ToList();
         logger.LogDebug("{NewPlayersCount} new players to add", newPlayers.Count);
         logger.LogDebug("New players ids : {PlayerIds}", string.Join(", ", newPlayers.Select(x => x.PlayerId)));
+        var serverPlayerIds = serverPlayers.Select(x => x.Key).ToHashSet();
+        foreach (var player in _currentPlayers)
+        {
+            if (serverPlayerIds.Contains(player.Key)) continue;
+            player.Value.SpouseId = null;
+        }
         await lomDbContext.Players.AddRangeAsync(newPlayers, cancellationToken);
         await lomDbContext.SaveChangesAsync(cancellationToken);
         _currentPlayers.Clear();
