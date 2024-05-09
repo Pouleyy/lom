@@ -8,9 +8,9 @@ namespace Core.Hangfire.Interfaces;
 #else
 [Queue(WorkerConstants.Queues.GSheet)]
 #endif
-public interface ILeaderboardGSheetJob
+public interface IGuildLeaderboardGSheetJob
 {
-    [JobDisplayName("Leaderboard GSheet")]
+    [JobDisplayName("Guild Leaderboard GSheet")]
     [AutomaticRetry(Attempts = WorkerConstants.TotalRetry, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     Task ExecuteAsync(PerformContext context, CancellationToken cancellationToken = default);
 }

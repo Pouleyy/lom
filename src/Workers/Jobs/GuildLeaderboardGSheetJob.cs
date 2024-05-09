@@ -11,13 +11,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Jobs.Jobs;
 
-public class LeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gSheetService, ILogger<LeaderboardGSheetJob> logger) : ILeaderboardGSheetJob
+public class GuildLeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gSheetService, ILogger<GuildLeaderboardGSheetJob> logger) : IGuildLeaderboardGSheetJob
 {
     public async Task ExecuteAsync(PerformContext context, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Starting Leaderboard GSheet job");
+        logger.LogInformation("Starting Guild Leaderboard GSheet job");
         //Get top 10 guild by player power for each server
-        var top10FamiliesPerServer = await lomDbContext.Families.Where(x => x.ServerId != 0).Select(x => new FamilyLeadboard
+        var top10FamiliesPerServer = await lomDbContext.Families.Select(x => new FamilyLeadboard
                                                         {
                                                             FamilyName = x.GuildName,
                                                             ServerId = x.ServerId,
@@ -35,7 +35,7 @@ public class LeaderboardGSheetJob(LomDbContext lomDbContext, IGSheetService gShe
         await gSheetService.WriteTop10Guilds(top10FamiliesPerServer, cancellationToken);
         var lastExecutionTimeBySubRegion = GetLastExecutionTimeBySubRegion();
         await gSheetService.WriteLastExecutionTimeBySubRegion(lastExecutionTimeBySubRegion, cancellationToken);
-        logger.LogInformation("Finished Leaderboard GSheet job");
+        logger.LogInformation("Finished Guild Leaderboard GSheet job");
     }
 
     private static Dictionary<SubRegion, (long full, long top3)> GetLastExecutionTimeBySubRegion()
