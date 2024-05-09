@@ -86,6 +86,8 @@ public class Player
     
     public virtual Family? Family { get; set; }
     
+    public virtual Server? Server { get; set; }
+    
     public virtual Player? Spouse { get; set; }
     
     public static void OnModelCreating(ModelBuilder modelBuilder)
@@ -115,6 +117,12 @@ public class Player
                     .HasOne(p => p.Family)
                     .WithMany(f => f.Players)
                     .HasForeignKey(p => p.GuildId)
+                    .OnDelete(DeleteBehavior.Cascade);
+        
+        modelBuilder.Entity<Player>()
+                    .HasOne(p => p.Server)
+                    .WithMany(s => s.Players)
+                    .HasForeignKey(p => p.ServerId)
                     .OnDelete(DeleteBehavior.Cascade);
         
         modelBuilder.Entity<Player>()

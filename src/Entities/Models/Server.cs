@@ -27,6 +27,8 @@ public class Server
     
     public virtual ICollection<Family> Families { get; set; } = new List<Family>();
     
+    public virtual ICollection<Player> Players { get; set; } = new List<Player>();
+    
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Server>()

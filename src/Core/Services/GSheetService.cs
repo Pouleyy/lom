@@ -15,11 +15,13 @@ public class GSheetService : IGSheetService
     private SheetsService _sheetsService { get; set; }
     private string _leaderBoardSheetId { get; set; }
     private string _leaderBoardSheetName { get; set; }
-    
+    private string _playerLeaderboardSheetId { get; set; }
+
     public GSheetService(IConfiguration configuration)
     {
         _leaderBoardSheetId = configuration.GetSection("GSheet:Leaderboard:SheetId").Value ?? throw new ArgumentNullException("Missing leaderboard sheet id in configuration");
         _leaderBoardSheetName = configuration.GetSection("GSheet:Leaderboard:SheetName").Value ?? throw new ArgumentNullException("Missing leaderboard sheet name in configuration");
+        _playerLeaderboardSheetId = configuration.GetSection("GSheet:PlayerLeaderboardSheetId").Value ?? throw new ArgumentNullException("Missing player leaderboard sheet id in configuration");
         var credentialsFile = configuration.GetSection("GSheet:CredentialsPath").Value ?? throw new ArgumentNullException("Missing credentials file path in configuration");
         var credentials = GoogleCredential.FromFile(credentialsFile).CreateScoped(Scopes);
         _sheetsService = new SheetsService(new BaseClientService.Initializer
@@ -28,7 +30,7 @@ public class GSheetService : IGSheetService
             ApplicationName = "Lom"
         });
     }
-    
+
     public async Task WriteTop10Guilds(List<IEnumerable<FamilyLeadboard>> families, CancellationToken cancellationToken = default)
     {
         var range = $"{_leaderBoardSheetName}!A2";
@@ -39,7 +41,7 @@ public class GSheetService : IGSheetService
         foreach (var familyLeadboard in families.SelectMany(family => family))
         {
             valueRange.Values.Add(new List<object> { familyLeadboard.ServerId, familyLeadboard.FamilyName, familyLeadboard.Power });
-        } 
+        }
         var request = _sheetsService.Spreadsheets.Values.Update(valueRange, _leaderBoardSheetId, range);
         request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
         await request.ExecuteAsync(cancellationToken);
@@ -55,6 +57,28 @@ public class GSheetService : IGSheetService
                 Values = new List<IList<object>> { new List<object> { lastExecutionTimeBySubRegion[subRegion].full, lastExecutionTimeBySubRegion[subRegion].top3 } }
             };
             var request = _sheetsService.Spreadsheets.Values.Update(valueRange, _leaderBoardSheetId, range);
+            request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+            await request.ExecuteAsync(cancellationToken);
+        }
+    }
+
+    public async Task WriteTopPlayers(IEnumerable<IGrouping<SubRegion, PlayerLeaderboard>> topPlayerPerSubRegion, CancellationToken cancellationToken)
+    {
+        foreach (var topPlayerSubRegion in topPlayerPerSubRegion)
+        {
+            var range = $"{topPlayerSubRegion.Key}!G2";
+            var valueRange = new ValueRange
+            {
+                Values = new List<IList<object>>()
+            };
+            foreach (var playerLeaderboardByServer in topPlayerSubRegion.GroupBy(x => x.ServerId))
+            {
+                foreach (var player in playerLeaderboardByServer.OrderByDescending(x => x.Power))
+                {
+                    valueRange.Values.Add(new List<object> { player.Name, player.Power, player.ServerId });
+                }
+            }
+            var request = _sheetsService.Spreadsheets.Values.Update(valueRange, _playerLeaderboardSheetId, range);
             request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
             await request.ExecuteAsync(cancellationToken);
         }

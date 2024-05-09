@@ -43,7 +43,8 @@ public static partial class ServiceCollectionExtensions
     public static void ConfigureRecurringJob(this WebApplication app)
     {
         RecurringJob.AddOrUpdate<IServerScraperJob>("Server Scrapper", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(23));
-        RecurringJob.AddOrUpdate<ILeaderboardGSheetJob>("Leaderboard GSheet", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(0));
+        RecurringJob.AddOrUpdate<IGuildLeaderboardGSheetJob>("Guild Leaderboard GSheet", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(0));
+        RecurringJob.AddOrUpdate<IPlayerLeaderboardGSheetJob>("Player Leaderboard GSheet", job => job.ExecuteAsync(null, CancellationToken.None), Cron.Daily(0));
         foreach (var (subregion, index) in Enum.GetValues<SubRegion>().Select((subRegion, index) => (subRegion, index)))
         {
             var region = RegionHelper.SubRegionToRegion(subregion);

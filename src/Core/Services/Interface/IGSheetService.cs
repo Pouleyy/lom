@@ -7,4 +7,5 @@ public interface IGSheetService
 {
     Task WriteTop10Guilds(List<IEnumerable<FamilyLeadboard>> families, CancellationToken cancellationToken = default);
     Task WriteLastExecutionTimeBySubRegion(Dictionary<SubRegion, (long full, long top3)> lastExecutionTimeBySubRegion, CancellationToken cancellationToken);
+    Task WriteTopPlayers(IEnumerable<IGrouping<SubRegion, PlayerLeaderboard>> topPlayerPerSubRegion, CancellationToken cancellationToken);
 }
