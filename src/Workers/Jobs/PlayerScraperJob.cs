@@ -194,28 +194,35 @@ public class PlayerScraperJob(LomDbContext lomDbContext, IBrowserService browser
             case "role.role_others_s2c":
                 var jsonMember = await e.Response!.JsonValueAsync();
                 var stringMember = jsonMember.ToString();
-                var roleOthersResponse = JsonSerializer.Deserialize<RoleOthersResponse>(stringMember!);
-                if (roleOthersResponse is null || roleOthersResponse.Players.Length <= 0) return;
-                var playerInfos = roleOthersResponse.Players.First();
-                if (_currentPlayers.TryGetValue(playerInfos.PlayerId, out var playerToUpdate))
+                try
                 {
-                    var spouseId = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1027)!.Value;
-                    playerToUpdate.Power = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1020)!.Value;
-                    playerToUpdate.Level = (int)playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1001)!.Value;
-                    playerToUpdate.Class = Enum.Parse<PlayerClass>(playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1008)!.Value.ToString());
-                    playerToUpdate.SpouseId = spouseId == 0 ? null : spouseId;
-                    playerToUpdate.Attack = playerInfos.SpList.FirstOrDefault(x => x.Key == 1)!.Value;
-                    playerToUpdate.Defense = playerInfos.SpList.FirstOrDefault(x => x.Key == 24)!.Value;
-                    playerToUpdate.Health = playerInfos.SpList.FirstOrDefault(x => x.Key == 2)!.Value;
-                    playerToUpdate.CritRate = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1004)!.Value;
-                    playerToUpdate.CritMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1005)!.Value;
-                    playerToUpdate.CritRes = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1006)!.Value;
-                    playerToUpdate.Evasion = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1008)!.Value;
-                    playerToUpdate.Combo = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1016)!.Value;
-                    playerToUpdate.Counterstrike = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1017)!.Value;
-                    playerToUpdate.Stun = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1023)!.Value;
-                    playerToUpdate.ComboMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1032)!.Value;
-                    playerToUpdate.CounterstrikeMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1033)!.Value;
+                    var roleOthersResponse = JsonSerializer.Deserialize<RoleOthersResponse>(stringMember!);
+                    if (roleOthersResponse is null || roleOthersResponse.Players.Length <= 0) return;
+                    var playerInfos = roleOthersResponse.Players.First();
+                    if (_currentPlayers.TryGetValue(playerInfos.PlayerId, out var playerToUpdate))
+                    {
+                        var spouseId = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1027)!.Value;
+                        playerToUpdate.Power = playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1020)!.Value;
+                        playerToUpdate.Level = (int)playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1001)!.Value;
+                        playerToUpdate.Class = Enum.Parse<PlayerClass>(playerInfos.InfoList.KeyValues.FirstOrDefault(x => x.Key == 1008)!.Value.ToString());
+                        // playerToUpdate.SpouseId = spouseId == 0 ? null : spouseId;
+                        playerToUpdate.Attack = playerInfos.SpList.FirstOrDefault(x => x.Key == 1)!.Value;
+                        playerToUpdate.Defense = playerInfos.SpList.FirstOrDefault(x => x.Key == 24)!.Value;
+                        playerToUpdate.Health = playerInfos.SpList.FirstOrDefault(x => x.Key == 2)!.Value;
+                        playerToUpdate.CritRate = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1004)!.Value;
+                        playerToUpdate.CritMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1005)!.Value;
+                        playerToUpdate.CritRes = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1006)!.Value;
+                        playerToUpdate.Evasion = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1008)!.Value;
+                        playerToUpdate.Combo = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1016)!.Value;
+                        playerToUpdate.Counterstrike = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1017)!.Value;
+                        playerToUpdate.Stun = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1023)!.Value;
+                        playerToUpdate.ComboMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1032)!.Value;
+                        playerToUpdate.CounterstrikeMultiplier = (int)playerInfos.SpList.FirstOrDefault(x => x.Key == 1033)!.Value;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    logger.LogError("Error while deserializing role_others_s2c response : {Message}", stringMember);
                 }
                 break;
         }
