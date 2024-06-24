@@ -17,7 +17,6 @@ namespace Jobs.Jobs;
 public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserService, ILogger<GuildScraperJob> logger) : IGuildScraperJob
 {
     private int _numberOfVoidIds;
-    private const int _limitVoidIds = 75;
     private int _currentServerId;
     private ConcurrentDictionary<ulong, Family> _currentFamilies = [];
     private BrowserLom? _browser;
@@ -91,7 +90,8 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         var serverFamilies = await _lomDbContext.Families.Where(x => x.ServerId == server.ServerId).ToDictionaryAsync(x => x.GuildId, cancellationToken: cancellationToken);
         _currentFamilies = new ConcurrentDictionary<ulong, Family>(serverFamilies);
         var minGuildId = server.MinGuildId;
-        while (_numberOfVoidIds < _limitVoidIds)
+        var limitVoidIds = serverFamilies.Count == 0 ? 200 : 30;
+        while (_numberOfVoidIds < limitVoidIds)
         {
             await _browser.WriteToConsole($"netManager.send(\"guild.guild_info_c2s\", {{ guild_id: {minGuildId}, source: undefined }}, false);");
             minGuildId++;
@@ -100,7 +100,7 @@ public class GuildScraperJob(LomDbContext lomDbContext, IBrowserService browserS
         }
         _numberOfVoidIds = 0;
         await Task.Delay(2000, cancellationToken);
-        server.MinGuildId = _currentFamilies.Values.MinBy(x => x.GuildId)?.GuildId ?? minGuildId;
+        server.MinGuildId = _currentFamilies.Values.MinBy(x => x.GuildId)?.GuildId ?? server.MinGuildId;
         var newFamilies = _currentFamilies.Except(serverFamilies).Select(x => x.Value);
         await _lomDbContext.Families.AddRangeAsync(newFamilies, cancellationToken);
         await _lomDbContext.SaveChangesAsync(cancellationToken);
