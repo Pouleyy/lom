@@ -16,6 +16,7 @@ public static class RegionHelper
             SubRegion.FR => Region.EU,
             SubRegion.TR => Region.EU,
             SubRegion.RU => Region.EU,
+            SubRegion.ME => Region.EU,
             _ => throw new ArgumentOutOfRangeException(nameof(subRegion), subRegion, null)
         };
     }
