@@ -31,4 +31,16 @@ public class Server
     private long OpenTime { get; set; }
     
     public string Region { get; set; } = "";
+
+    public int? MergedInto
+    {
+        get
+        {
+            int.TryParse(MergeId, out var id);
+            return id == 0 ? null : id;
+        }    
+    }
+    
+    [JsonPropertyName("merge_id")]
+    public string MergeId { get; set; }
 }

@@ -25,6 +25,9 @@ public class Server
     [Column("min_guild_id", TypeName = "bigint")]
     public ulong? MinGuildId { get; set; }
     
+    [Column("merged_into")]
+    public int? MergedInto { get; set; }
+    
     public virtual ICollection<Family> Families { get; set; } = new List<Family>();
     
     public virtual ICollection<Player> Players { get; set; } = new List<Player>();
