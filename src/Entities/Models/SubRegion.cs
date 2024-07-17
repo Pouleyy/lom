@@ -9,5 +9,6 @@ public enum SubRegion
     DE,
     FR,
     TR,
-    RU
+    RU,
+    ME
 }
